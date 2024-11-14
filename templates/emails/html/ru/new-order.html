@@ -1,0 +1,16 @@
+{% extends 'emails/html/ru/wrapper.html' %}
+
+
+
+{% block content %}
+
+    <p>Номер заказа: <b>{{ order.id }}</b></p>
+        {% if order.first_date == order.last_date %}
+            <p>Даты заказа: <b>{{ order.first_date|date:"d.m.Y" }}</b></p>
+        {% else %}
+            <p>Даты заказа: <b>{{ order.first_date|date:"d.m.Y" }} — {{ order.last_date|date:"d.m.Y" }}</b></p>
+        {% endif %}
+    <p>Сумма заказа: <b>{{ order.price }} ₪</b></p>
+    <p>Время заказа: <b>{{ order.created|date:"d.m.Y H:i" }}</b></p>
+
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'emails/html/he/wrapper.html' %}
+
+
+
+{% block content %}
+
+    <p>ההזמנה שלך <a href="https://{{ fixed.base }}/he/" target="_blank">באתר שלנ</a> <b>שולמה בהצלחה</b>.</p>
+    <p>מספר הזמנה: <b>{{ order.id }}</b>.</p>
+    <p>תַפרִיט: <b>{{ order.menu.type }}</b>.</p>
+    {% if order.first_date == order.last_date %}
+        <p>תאריך משלוח: <b>{{ order.first_date|date:"d.m.Y" }}</b>.</p>
+    {% else %}
+        <p>תאריכי משלוח: <b>{{ order.first_date|date:"d.m.Y" }} — {{ order.last_date|date:"d.m.Y" }}</b>.</p>
+    {% endif %}
+    <p>תאריך הפעולה: {{ created|date:"d.m.Y" }}.</p>
+    <p><a href="https://{{ fixed.base }}/he/user-{{ order.profile.user.id }}/">פרטים נוספים בחשבונך האישי</a>.</p>
+
+{% endblock %}

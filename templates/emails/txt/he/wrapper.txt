@@ -1,0 +1,18 @@
+שלום!
+
+{% block content %}
+
+{% endblock %}
+
+אנו מאחלים לך יום טוב
+צות {{ fixed.site_name }} (https://{{ fixed.base }}/he/).
+
+
+
+לצור קשר:
+
+Сайт: https://{{ fixed.base }}/he/
+WhatsApp: https://wa.me/{{ fixed.whatsapp_number }}/
+Instagram: https://instagram.com/_u/{{ fixed.instagram_username }}/
+Facebook: https://facebook.com/{{ fixed.facebook_username }}/
+Телефон: {{ fixed.phone_number }}

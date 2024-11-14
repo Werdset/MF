@@ -1,0 +1,103 @@
+{% load static %}
+{% load i18n %}
+{% load tz %}
+{% get_current_language as LANGUAGE_CODE %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <link rel="stylesheet" href="{% static 'fonts/roboto.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-4.5.0.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/reports_orders_styles.css' %}">
+</head>
+<body>
+{% for order in orders %}
+    <div class="d-flex justify-content-between">
+        <div class="order-id">#{{ order.ru.id }}</div>
+        <img class="logo" src="{{ fixed.logo.url }}">
+        <div class="order-id invisible">#{{ order.ru.id }}</div>
+    </div>
+    <div class="menu-name">{{ order.ru.menu }}</div>
+    <div class="menu-description">{{ order.ru.description }}</div>
+    {% for dish in order.ru.dishes %}
+        <div class="w-50" style="margin-left: 25%">
+            <div class="dish-name">{{ forloop.counter }}. {{ dish.name }}</div>
+            <div class="row dish-data-header">
+                <div class="col-3">Калории</div>
+                <div class="col-3">Белки</div>
+                <div class="col-3">Жиры</div>
+                <div class="col-3">Углеводы</div>
+            </div>
+            <div class="row dish-data">
+                <div class="col-3">{{ dish.calories }}</div>
+                <div class="col-3">{{ dish.proteins }}</div>
+                <div class="col-3">{{ dish.fats }}</div>
+                <div class="col-3">{{ dish.carbohydrates }}</div>
+            </div>
+            <div class="dish-description">{{ dish.description }}</div>
+        </div>
+    {% endfor %}
+    <div class="w-50" style="margin-left: 25%">
+        <div class="summary-name">Всего за день</div>
+        <div class="row dish-data-header">
+            <div class="col-3">Калории</div>
+            <div class="col-3">Белки</div>
+            <div class="col-3">Жиры</div>
+            <div class="col-3">Углеводы</div>
+        </div>
+        <div class="row dish-data">
+            <div class="col-3">{{ order.ru.summary.calories }}</div>
+            <div class="col-3">{{ order.ru.summary.proteins }}</div>
+            <div class="col-3">{{ order.ru.summary.fats }}</div>
+            <div class="col-3">{{ order.ru.summary.carbohydrates }}</div>
+        </div>
+    </div>
+    <div class="pagebreak"></div>
+    <div class="d-flex justify-content-between">
+        <div class="order-id">#{{ order.ru.id }}</div>
+        <img class="logo" src="{{ fixed.logo.url }}">
+        <div class="order-id invisible">#{{ order.ru.id }}</div>
+    </div>
+    <div class="menu-name">{{ order.he.menu }}</div>
+    <div class="menu-description">{{ order.he.description }}</div>
+    {% for dish in order.he.dishes %}
+        <div class="w-50" style="margin-left: 25%">
+            <div class="dish-name" dir="rtl"><span>{{ forloop.counter }}. </span>{{ dish.name }}</div>
+            <div class="row flex-row-reverse dish-data-header">
+                <div class="col-3">קלוריות</div>
+                <div class="col-3">חלבונים</div>
+                <div class="col-3">שומנים</div>
+                <div class="col-3">פחמימות</div>
+            </div>
+            <div class="row flex-row-reverse dish-data">
+                <div class="col-3">{{ dish.calories }}</div>
+                <div class="col-3">{{ dish.proteins }}</div>
+                <div class="col-3">{{ dish.fats }}</div>
+                <div class="col-3">{{ dish.carbohydrates }}</div>
+            </div>
+            <div class="dish-description">{{ dish.description }}</div>
+        </div>
+    {% endfor %}
+    <div class="w-50" style="margin-left: 25%">
+        <div class="summary-name">סה"כ ליום</div>
+        <div class="row flex-row-reverse dish-data-header">
+            <div class="col-3">קלוריות</div>
+            <div class="col-3">חלבונים</div>
+            <div class="col-3">שומנים</div>
+            <div class="col-3">פחמימות</div>
+        </div>
+        <div class="row flex-row-reverse dish-data">
+            <div class="col-3">{{ order.he.summary.calories }}</div>
+            <div class="col-3">{{ order.he.summary.proteins }}</div>
+            <div class="col-3">{{ order.he.summary.fats }}</div>
+            <div class="col-3">{{ order.he.summary.carbohydrates }}</div>
+        </div>
+    </div>
+    <div class="pagebreak"></div>
+{% endfor %}
+<script>
+    window.onload = function () {
+        window.print();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+.pagebreak {
+    page-break-after: always;
+}
+
+.order-id {
+    font-weight: bold;
+    font-size: 1cm;
+}
+
+.logo {
+    text-align: center;
+    display: inline-block;
+    width: 30%;
+    margin-bottom: 1cm;
+}
+
+.menu-name {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 1cm;
+    margin-bottom: .5cm;
+}
+
+.menu-description {
+    text-align: center;
+    font-weight: bold;
+    font-size: .7cm;
+    margin-bottom: 1cm;
+}
+
+.dish-name {
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: .5cm;
+    margin-bottom: .2cm;
+}
+
+.dish-description {
+    text-align: center;
+    font-size: .4cm;
+    margin-bottom: .8cm;
+}
+
+.dish-data-header {
+    text-align: center;
+    font-size: .4cm;
+    margin-bottom: .2cm;
+}
+
+.dish-data {
+    text-align: center;
+    font-size: .5cm;
+    font-weight: bold;
+    margin-bottom: .2cm;
+}
+
+.summary-name {
+    margin-top: .8cm;
+    margin-bottom: .2cm;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: .6cm;
+}

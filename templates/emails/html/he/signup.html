@@ -1,0 +1,14 @@
+{% extends 'emails/html/he/wrapper.html' %}
+
+
+
+{% block content %}
+
+    <p>החלטת <b>להירשם</b> <a href="https://{{ fixed.base }}/he/" target="_blank">לאתר שלנו</a>.
+    </p>
+    <p>לאישור הפעולה, הזן את הקוד:</p>
+    <p class="h1 code">{{ code }}</p>
+    <p>אריך הפעולה: <b>{{ created|date:"d.m.Y" }}</b>.</p>
+    <p>אם לא עשית זאת, אל תשתף את הקוד הזה עם אף אחד.</p>
+
+{% endblock %}

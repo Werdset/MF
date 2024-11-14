@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: 500;
+            box-sizing: border-box;
+            word-break: break-word;
+            white-space: normal;
+            direction: rtl;
+            color: black !important;
+        }
+
+        a {
+            display: inline-block;
+            color: black !important;
+        }
+
+        .body {
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+            background: #e7eaed;
+        }
+
+        .mail-white {
+            background: white;
+            padding: 1.25rem;
+            font-size: 1.2rem;
+        }
+
+        .h1 {
+            font-size: 1.75rem;
+        }
+
+        .mail-white * {
+            text-align: right;
+        }
+
+        .logo {
+            height: 40px;
+            text-align: center;
+            margin-bottom: 1.25rem;
+            width: 100%;
+        }
+
+        .logo img {
+            height: 100%;
+        }
+
+        .code {
+            font-weight: bold;
+            text-align: center;
+            display: block;
+        }
+
+        .greets {
+            margin-bottom: 1.5rem;
+        }
+
+        .footer {
+            width: 100%;
+            height: 100%;
+            padding: 1.25rem;
+        }
+
+        .footer * {
+            text-align: center;
+            color: #333;
+        }
+
+        .footer *:not(a) {
+            display: block;
+        }
+
+        .footer .link {
+            display: block;
+            margin-bottom: .75rem;
+        }
+
+        .footer .social-block {
+            width: 100%;
+        }
+
+        .footer .social-block .social-link {
+            text-decoration: none !important;
+            height: 30px;
+            width: 30px;
+            margin: 0 .25rem;
+            display: inline-block;
+        }
+
+        .footer .social-block .social-link img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+    </style>
+    {% block styles %}
+
+    {% endblock %}
+</head>
+<body>
+<div class="body">
+    <a href="https://{{ fixed.base }}/" class="logo">
+        <img src="https://{{ fixed.base }}{{ fixed.logo.url }}" alt="Logo"/>
+    </a>
+    <div class="mail-white">
+        <p class="h1">שלום!</p>
+        {% block content %}
+
+        {% endblock %}
+        <p class="greets">
+            אנו מאחלים לך יום טוב
+            <br>
+            צות <a href="https://{{ fixed.base }}/he/" target="_blank">{{ fixed.site_name }}</a>.
+        </p>
+    </div>
+    <div class="footer">
+        <a class="link" href="https://{{ fixed.base }}/he/">{{ fixed.site_name }}</a>
+        <div class="social-block">
+            <a href="https://wa.me/{{ fixed.whatsapp_number }}/" target="_blank" class="social-link">
+                <img src="https://{{ fixed.base }}{{ MEDIA_URL }}emails/whatsapp.png" alt="WhatsApp"/>
+            </a>
+            <a href="https://instagram.com/_u/{{ fixed.instagram_username }}/" target="_blank" class="social-link">
+                <img src="https://{{ fixed.base }}{{ MEDIA_URL }}emails/instagram.png" alt="Instagram"/>
+            </a>
+            <a href="https://facebook.com/{{ fixed.facebook_username }}/" target="_blank" class="social-link">
+                <img src="https://{{ fixed.base }}{{ MEDIA_URL }}emails/facebook.png" alt="Facebook"/>
+            </a>
+            <a href="tel:{{ fixed.phone_number }}/" class="social-link">
+                <img src="https://{{ fixed.base }}{{ MEDIA_URL }}emails/phone.png" alt="Phone"/>
+            </a>
+        </div>
+        <p>
+            Вы получили это письмо, потому что ввели этот email на <a href="https://{{ fixed.base }}/he/"
+                                                                      target="_blank">нашем
+            сайте</a>.
+        </p>
+    </div>
+</div>
+</body>
+</html>

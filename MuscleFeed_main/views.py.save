@@ -1,0 +1,1264 @@
+import json
+import locale
+from collections import OrderedDict
+
+import pytz
+from allauth.account.forms import ResetPasswordKeyForm
+from django.contrib import auth
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import PasswordChangeForm
+from django.core.mail import EmailMultiAlternatives
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import redirect
+from django.template.defaultfilters import register as reg
+from django.template.loader import get_template
+from django.utils import timezone, translation
+from django.views import generic
+from django.views.decorators.csrf import csrf_protect
+from xlsxwriter import Workbook
+
+from .forms import *
+from .models import *
+
+
+@reg.filter(name='split')
+def slpit_filter(value, arg):
+    return value.split(arg)
+
+
+@reg.filter(name='weekday')
+def weekday_filter(value):
+    value_splt = value.split('.')
+    return datetime.date(int(value_splt[2]), int(value_splt[1]), int(value_splt[0])).weekday()
+
+
+@reg.filter(name='replace')
+def replace_filter(string, repl):
+    return string.replace(repl.split('--->')[0], repl.split('--->')[1])
+
+
+@reg.simple_tag
+def get_menu_weekday_price(menu_id, weekday, sex):
+    if Menu.objects.filter(active=True, id=menu_id):
+        menu = Menu.objects.get(active=True, id=menu_id)
+        if sex == 'male':
+            price = str([
+                            menu.monday_price_male,
+                            menu.tuesday_price_male,
+                            menu.wednesday_price_male,
+                            menu.thursday_price_male,
+                            menu.friday_price_male,
+                            menu.saturday_price_male,
+                            menu.sunday_price_male,
+                            menu.monday_price_male2,
+                            menu.tuesday_price_male2,
+                            menu.wednesday_price_male2,
+                            menu.thursday_price_male2,
+                            menu.friday_price_male2,
+                            menu.saturday_price_male2,
+                            menu.sunday_price_male2,
+                        ][weekday]).replace(',', '.')
+        elif sex == 'female':
+            price = str([
+                            menu.monday_price_female,
+                            menu.tuesday_price_female,
+                            menu.wednesday_price_female,
+                            menu.thursday_price_female,
+                            menu.friday_price_female,
+                            menu.saturday_price_female,
+                            menu.sunday_price_female,
+                            menu.monday_price_female2,
+                            menu.tuesday_price_female2,
+                            menu.wednesday_price_female2,
+                            menu.thursday_price_female2,
+                            menu.friday_price_female2,
+                            menu.saturday_price_female2,
+                            menu.sunday_price_female2,
+                        ][weekday]).replace(',', '.')
+        return price
+
+
+@reg.filter(name='get_ordered_questions')
+def get_ordered_questions(questions):
+    return questions.order_by('order')
+
+
+def send_mail(subject, template, lang, email, context_args):
+    plaintext = get_template('emails/txt/{}/{}.txt'.format(lang, template))
+    htmly = get_template('emails/html/{}/{}.html'.format(lang, template))
+    fixed = Fixed.objects.get(active=True)
+    context = {'fixed': fixed, 'MEDIA_URL': settings.MEDIA_URL}
+    context.update(context_args)
+    text_content = plaintext.render(context)
+    html_content = htmly.render(context)
+    if settings.LOCAL:
+        print(f'\n\n\n'
+              f'Key: {context["code"]}\n'
+              f'HTML: {html_content}\n'
+              f'TXT: {text_content}'
+              f'\n\n\n')
+    else:
+        msg = EmailMultiAlternatives(subject, text_content, '{} <noreply@{}>'.format(fixed.site_name, fixed.base),
+                                     [email])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+
+
+def send_auth_mail(request, template, user, email):
+    """ Отправить email с ключем """
+    EmailVerification.objects.filter(user=user).delete()
+    key_model = EmailVerification.objects.create(user=user, new_email=email)
+    t = WrapperTranslations.objects.get(active=True)
+    if template == 'signup':
+        subject = t.registration
+    if template == 'reset-password':
+        subject = t.reset_password
+    if template == 'change-email':
+        subject = t.change_email
+    data = {
+        'code': key_model.key,
+        'created': key_model.created,
+    }
+    send_mail(subject, template, request.session[settings.LANGUAGE_COOKIE_NAME], email, data)
+
+
+def key_verification(request):
+    """ Сверка ключа """
+    username = request.POST.get('username')
+    key = request.POST.get('key')
+    if User.objects.filter(username=username):
+        user = User.objects.get(username=username)
+        if EmailVerification.objects.filter(user=user):
+            key_model = EmailVerification.objects.get(user=user)
+            new = key_model.new_email
+            if key == key_model.key:
+                return {'success': True, 'username': user.username, 'key': key, 'new': new}
+    return {'success': False}
+
+
+@csrf_protect
+def signup(request, step):
+    """ Регистрация """
+    if step == 1:
+        if 'email' in request.POST.keys():
+            username = request.POST.get('email').replace('.', '_').replace('@', '_').lower()
+            if User.objects.filter(username=username, is_active=False):
+                user = User.objects.get(username=username, is_active=False)
+                email = request.POST.get('email')
+            else:
+                form = SignupFormStep1(request.POST)
+                if form.is_valid():
+                    fc = form.cleaned_data
+                    email = fc['email']
+                    username = email.replace('.', '_').replace('@', '_')
+                    user = User.objects.create_user(username=username, email=email, password=fc['password1'])
+                else:
+                    return JsonResponse({**form.errors, **{'success': False}})
+            user.is_active = False
+            user.save()
+            send_auth_mail(request, 'signup', user, email)
+            return JsonResponse({'success': True, 'username': user.username})
+        else:
+            form = SignupFormStep1(request.POST)
+            form_invalid = form.is_valid()
+            return JsonResponse({**form.errors, **{'success': False}})
+    elif step == 2:
+        return JsonResponse(key_verification(request))
+    elif step == 3:
+        username = request.POST.get('username')
+        key = request.POST.get('key')
+        if User.objects.filter(username=username):
+            form = SignupFormStep3(request.POST)
+            if form.is_valid():
+                user = User.objects.get(username=username)
+                profile = Profile.objects.create(user=user)
+                # Some safety stuff
+                if EmailVerification.objects.filter(user=user, key=key):
+                    user.email = EmailVerification.objects.get(user=user, key=key).new_email
+                    user.is_active = True
+                    user.save()
+                    profile.status = 'active'
+                    EmailVerification.objects.filter(user=user).delete()
+                    fc = form.cleaned_data
+                    profile.sex = fc['user_sex']
+                    profile.name = fc['user_name']
+                    profile.surname = fc['user_surname']
+                    if fc['user_phone']:
+                        profile.phone = fc['user_phone']
+                    profile.status = 'active'
+                    profile.save()
+                    user.backend = 'django.contrib.auth.backends.ModelBackend'
+                    auth.login(request, user)
+                    return JsonResponse({'success': True, 'id': user.id})
+            else:
+                return JsonResponse({**form.errors, **{'success': False}})
+        return JsonResponse({'success': False})
+
+
+@csrf_protect
+def login(request):
+    """ Вход """
+    username = request.POST.get('email').replace('.', '_').replace('@', '_').lower()
+    password = request.POST.get('password')
+    auth_form = AuthenticationForm(request, {'username': username, 'password': password})
+    if auth_form.is_valid():
+        if request.POST.get('remember') == "true":
+            pass
+        else:
+            request.session.set_expiry(0)
+        user = auth.authenticate(username=username, password=password)
+        profile = Profile.objects.get(user=user)
+        lang = 'ru'
+        if profile.language:
+            lang = profile.language
+        request.session[settings.LANGUAGE_COOKIE_NAME] = lang
+        request.session.save()
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        auth.login(request, user)
+        return JsonResponse({'success': True, 'id': user.id})
+    else:
+        return JsonResponse({'success': False})
+
+
+@login_required
+@csrf_protect
+def logout(request):
+    """ Выход """
+    lang = Profile.objects.get(user=request.user).language
+    auth.logout(request)
+    request.session[settings.LANGUAGE_COOKIE_NAME] = lang
+    request.session.save()
+    translation.activate(lang)
+    timezone.activate(pytz.timezone(settings.TIME_ZONE))
+    return redirect('home', lang)
+
+
+@csrf_protect
+def reset_password(request, step):
+    """ Сброс пароля """
+    if step == 1:
+        if User.objects.filter(email=request.POST.get('email').lower(), is_active=True):
+            user = User.objects.get(email=request.POST.get('email'))
+            send_auth_mail(request, 'reset-password', user, user.email)
+            return JsonResponse({'success': True, 'username': user.username})
+        else:
+            return JsonResponse({'success': False})
+    elif step == 2:
+        return JsonResponse(key_verification(request))
+    elif step == 3:
+        username = request.POST.get('username')
+        key = request.POST.get('key')
+        if User.objects.filter(username=username):
+            form = ResetPasswordKeyForm(request.POST)
+            if form.is_valid():
+                user = User.objects.get(username=username)
+                # Some safety stuff
+                if EmailVerification.objects.filter(user=user, key=key):
+                    user.set_password(form.cleaned_data['password1'])
+                    user.save()
+                    EmailVerification.objects.filter(user=user).delete()
+                    user.backend = 'django.contrib.auth.backends.ModelBackend'
+                    auth.login(request, user)
+                    return JsonResponse({'success': True, 'id': user.id})
+            else:
+                return JsonResponse({**form.errors, **{'success': False}})
+        return JsonResponse({'success': False})
+
+
+@csrf_protect
+def language_change(request):
+    """ Смена языка """
+    lang = request.POST.get('language')
+    if request.user.is_authenticated:
+        profile = Profile.objects.get(user=request.user)
+        profile.language = lang
+        profile.save()
+    request.session[settings.LANGUAGE_COOKIE_NAME] = lang
+    request.session.save()
+    return JsonResponse({'success': True, 'lang': lang})
+
+
+def wrap_data(context):
+    """ Функция добавления контекста wrapper """
+    context['fixed'] = Fixed.objects.get(active=True)
+    context['rules'] = Rules.objects.get(active=True)
+    context['wt'] = WrapperTranslations.objects.get(active=True)
+    return context
+
+
+class HomePage(generic.TemplateView):
+    """ Главная страница """
+    template_name = 'home.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context['page'] = HomePageSettings.objects.get(active=True)
+        context['female_k'] = settings.FEMALE_K
+        context['reviews_count'] = False
+        if Review.objects.filter(is_moderated=True).count() >= 3:
+            context['reviews'] = Review.objects.filter(is_moderated=True).order_by('-created')[:3]
+            context['reviews_count'] = Review.objects.filter(is_moderated=True).count()
+        context['question_blocks'] = False
+        if QuestionBlock.objects.filter(active=True).count():
+            context['question_blocks'] = QuestionBlock.objects.filter(active=True)
+        day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+        first_date_delay = (2 if int(day) % 2 == 0 else 3)
+        first_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(
+            days=first_date_delay)
+        context['dates'] = []
+        for i in range(6):
+            date = first_date + datetime.timedelta(days=i)
+            context['dates'].append({
+                'weekday': date.weekday(),
+                'date': date
+            })
+        context['daytimes'] = ['breakfast', 'second-breakfast', 'lunch', 'high-tea', 'dinner', 'drink']
+        menus_qs = Menu.objects.filter(active=True)
+        menus = [menus_qs.get(type='Comfort Fit'), menus_qs.get(type='Active Fit'), menus_qs.get(type='Express Fit'),
+                 menus_qs.get(type='Balance'), menus_qs.get(type='Titan'), menus_qs.get(type='Vegetarian')]
+        context['menus'] = menus
+        menu_weekday_prices = {}
+        for menu in menus:
+            male_price_list, female_price_list = get_menu_to_price_lists(menu)
+            if f'menu-{menu.id}' not in menu_weekday_prices.keys():
+                menu_weekday_prices[f'menu-{menu.id}'] = {}
+            for days in [1, 2, 4, 6, 14]:
+                weekdays_allowed = []
+                cnt = 0
+                excluding = (first_date - datetime.timedelta(days=1)).weekday()
+                for i in range(days + days // 7):
+                    number = (first_date.weekday() + i + cnt) % 14
+                    if number == excluding:
+                        number = (number + 1) % 14
+                        cnt += 1
+                        excluding += 7
+                    weekdays_allowed.append(number)
+                male_price = Decimal(0.00)
+                female_price = Decimal(0.00)
+                for weekday in weekdays_allowed:
+                    male_price += Decimal(male_price_list[weekday])
+                    female_price += Decimal(female_price_list[weekday])
+                    print(days, male_price_list[weekday], female_price_list[weekday], male_price, female_price
+                menu_weekday_prices[f'menu-{menu.id}'][f'days-{days}'] = {
+                    'male': str(male_price).replace(',', '.'),
+                    'female': str(male_price).replace(',', '.'),
+                }
+        context['menu_weekday_prices'] = menu_weekday_prices
+        menus_data = {}
+        menus_other_data = {}
+        for menu in menus:
+            dishes = get_menu_to_dishes(menu, False)
+            dishes_other = get_menu_to_dishes(menu, True)
+            if f'menu-{menu.id}' not in menus_data.keys():
+                menus_data[f'menu-{menu.id}'] = {}
+            if f'menu-{menu.id}' not in menus_other_data.keys():
+                menus_other_data[f'menu-{menu.id}'] = {}
+            for date_data in context['dates']:
+                if f'weekday-{date_data["weekday"]}' not in menus_data[f'menu-{menu.id}'].keys():
+                    menus_data[f'menu-{menu.id}'][f'weekday-{date_data["weekday"]}'] = {}
+                if f'weekday-{date_data["weekday"]}' not in menus_other_data[f'menu-{menu.id}'].keys():
+                    menus_other_data[f'menu-{menu.id}'][f'weekday-{date_data["weekday"]}'] = {}
+                for daytime in context['daytimes']:
+                    if f'daytime-{daytime}' not in menus_data[f'menu-{menu.id}'][
+                        f'weekday-{date_data["weekday"]}'].keys():
+                        menus_data[f'menu-{menu.id}'][f'weekday-{date_data["weekday"]}'][f'daytime-{daytime}'] = {}
+                    if f'daytime-{daytime}' not in menus_other_data[f'menu-{menu.id}'][
+                        f'weekday-{date_data["weekday"]}'].keys():
+                        menus_other_data[f'menu-{menu.id}'][f'weekday-{date_data["weekday"]}'][
+                            f'daytime-{daytime}'] = {}
+                    for dish in dishes_other[date_data["weekday"]].filter(type=daytime):
+                        dish_data = {
+                            'name': dish.name,
+                            'description': dish.description,
+                            'calories': dish.calories,
+                            'weight': dish.weight,
+                            'proteins': dish.proteins,
+                            'fats': dish.fats,
+                            'carbohydrates': dish.carbohydrates,
+                            'image_url': dish.image.url,
+                            'image_webp_url': dish.image_webp.url,
+                        }
+                        menus_other_data[f'menu-{menu.id}'][f'weekday-{date_data["weekday"]}'][f'daytime-{daytime}'][
+                            f'dish-{dish.id}'] = dish_data
+                        if dish in dishes[date_data["weekday"]]:
+                            menus_data[f'menu-{menu.id}'][f'weekday-{date_data["weekday"]}'][f'daytime-{daytime}'][
+                                f'dish-{dish.id}'] = dish_data
+        context['menus_data'] = menus_data
+        context['menus_other_data'] = menus_other_data
+        context['video'] = Video.objects.filter(active=True)
+        return wrap_data(context)
+
+
+def reviews_show_all(request):
+    if 'last_id' in request.GET.keys():
+        last_id = request.GET['last_id']
+        reviews = Review.objects.filter(is_moderated=True, id__lt=last_id).order_by('-created')
+        jsoned_reviews = [{
+            'url': review.url,
+            'name': review.name,
+            'photo_url': review.photo.url,
+            'photo_webp_url': review.photo_webp.url,
+            'content': review.content
+        } for review in reviews]
+        return JsonResponse({'success': True, 'reviews': jsoned_reviews})
+    return JsonResponse({'success': False})
+
+
+@csrf_protect
+def write_review(request):
+    form = WriteReviewForm(request.POST)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False})
+
+
+@csrf_protect
+def call_me(request):
+    form = CallMeForm(request.POST)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False})
+
+
+@csrf_protect
+def make_order(request):
+    is_phone = False
+    if request.POST.get('phone'):
+        is_phone = True
+    sex = request.POST.get('sex')
+    days = int(request.POST.get('days'))
+    menu_name = request.POST.get('menu_name')
+    comment = request.POST.get('comment')
+    address = request.POST.get('address')
+    weekday_dishes_ids = json.loads(request.POST.get('dishes'))
+    if menu_name:
+        if menu_name in ['Comfort Fit', 'Active Fit', 'Express Fit', 'Balance', 'Titan', 'Vegetarian']:
+            menu_type = menu_name
+            if Menu.objects.filter(active=True, type=menu_type):
+                menu = Menu.objects.get(active=True, type=menu_type)
+                day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+                first_date_delay = (2 if int(day) % 2 == 0 else 3)
+                first_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(
+                    days=first_date_delay)
+                new_order = Order(
+                    sex=sex,
+                    menu=menu,
+                    comment=comment,
+                    address=address,
+                    first_date=first_date,
+                    days=days,
+                )
+                new_order.name = request.POST.get('name')
+                if is_phone:
+                    new_order.phone = request.POST.get('phone')
+                elif request.user.is_authenticated:
+                    if Profile.objects.filter(user=request.user):
+                        profile = Profile.objects.get(user=request.user)
+                        new_order.profile = profile
+                        new_order.phone = profile.phone
+                        new_order.email = profile.user.email
+                        name = profile.name + ' ' + profile.surname
+                        new_order.name = name
+                        # Send payment mail
+                        new_order.is_called = True
+                new_order_response = new_order.save(weekday_dishes_ids)
+                if new_order_response:
+                    return JsonResponse(
+                        {'success': True, 'new_order_id': new_order.id, 'new_order_price': new_order.price,
+                         'dishes_ok': True})
+                else:
+                    return JsonResponse({'success': True, 'dishes_ok': False})
+    return JsonResponse({'success': False})
+
+
+def generate_orders_json(orders_qs):
+    all_orders_loaded = True
+    if len(orders_qs) > 20:
+        all_orders_loaded = False
+        orders_qs = orders_qs[:20]
+    orders = {}
+    for i, order in enumerate(orders_qs):
+        orders[i] = {
+            'menu': {
+                'type': order.menu.type,
+                'description': order.menu.description
+            },
+            'id': order.id,
+            'is_payed': order.is_payed,
+            'first_date': order.first_date.strftime('%e.%m.%Y'),
+            'days': order.days,
+            'last_date': order.last_date.strftime('%e.%m.%Y'),
+        }
+    return {
+        'orders': orders,
+        'all_orders_loaded': all_orders_loaded
+    }
+
+
+class AccountPage(generic.TemplateView):
+    """ Странциа аккаунта """
+    template_name = 'account.html'
+
+    def get(self, request, **kwargs):
+        user_id = int(self.kwargs['id'])
+        if request.user.id == user_id \
+                and User.objects.get(id=user_id).is_active \
+                and Profile.objects.get(user_id=user_id).status == 'active':
+            # Some security stuff
+            is_moderator = Profile.objects.get(user_id=user_id).is_moderator
+            context = self.get_context_data_meta()
+            if is_moderator:
+                self.get_context_data_moderator(context)
+            else:
+                self.get_context_data_default(context)
+            return self.render_to_response(context)
+        else:
+            return redirect('home')
+
+    def get_context_data_meta(self):
+        """ Общий контекст для страницы аккаунта """
+        context = super().get_context_data()
+        context['page'] = AccountPageSettings.objects.get(active=True)
+        context['home_page'] = HomePageSettings.objects.get(active=True)
+        context['profile'] = Profile.objects.get(user=self.request.user)
+        context['today'] = datetime.date.today().strftime('%e.%m.%Y')
+        return wrap_data(context)
+
+    def get_context_data_default(self, context):
+        """ Контекст для страницы аккаунта пользователя """
+        orders_qs = Order.objects.filter(
+            profile=context['profile']
+        ).union(Order.objects.filter(
+            phone=context['profile'].phone,
+            is_called=True
+        )).order_by('-created')
+        json_orders = generate_orders_json(orders_qs)
+        context['orders'] = json_orders['orders']
+        context['all_orders_loaded'] = json_orders['all_orders_loaded']
+
+    def get_context_data_moderator(self, context):
+        """ Контекст для страницы аккаунта модератора """
+        last_date = timezone.now() - datetime.timedelta(days=31)
+        context['change_requests'] = ChangePersonalDataRequest.objects.all().order_by('-created')
+        context['call_requests'] = CallRequest.objects.all().order_by('-created')
+        context['review_requests'] = Review.objects.filter(is_moderated=False).order_by('-created')
+        day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+        first_date_delay = (2 if int(day) % 2 == 0 else 3)
+        first_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(
+            days=first_date_delay)
+        context['first_date'] = first_date
+        context['orders'] = {
+            'not_called': Order.objects.filter(
+                is_called=False,
+            ).order_by('-created'),
+        }
+        home_settings = HomePageSettings.objects.get(active=True)
+        context['sales'] = {
+            1: home_settings.order_sale_1,
+            2: home_settings.order_sale_2,
+            4: home_settings.order_sale_4,
+            6: home_settings.order_sale_6,
+            14: home_settings.order_sale_14
+        }
+        orders_active = []
+        weekday_number_to_string = [
+            home_settings.monday_short,
+            home_settings.tuesday_short,
+            home_settings.wednesday_short,
+            home_settings.thursday_short,
+            home_settings.friday_short,
+            home_settings.saturday_short,
+            home_settings.sunday_short,
+            home_settings.monday_short + ' 2',
+            home_settings.tuesday_short + ' 2',
+            home_settings.wednesday_short + ' 2',
+            home_settings.thursday_short + ' 2',
+            home_settings.friday_short + ' 2',
+            home_settings.saturday_short + ' 2',
+            home_settings.sunday_short + ' 2',
+        ]
+        numerated_type = {
+            'breakfast': 1,
+            'second-breakfast': 2,
+            'lunch': 3,
+            'high-tea': 4,
+            'dinner': 5,
+            'drink': 6
+        }
+        verbose_type = {
+            'breakfast': home_settings.breakfast,
+            'second-breakfast': home_settings.second_breakfast,
+            'lunch': home_settings.lunch,
+            'high-tea': home_settings.high_tea,
+            'dinner': home_settings.dinner,
+            'drink': home_settings.drink
+        }
+        for order in Order.objects.filter(created__gte=last_date):
+            if order.last_date >= datetime.date.today() and (order.is_payed or order.is_called):
+                order_data_raw = {}
+                order_data = {'order': order, 'info': []}
+                weekday_to_order_dishes = get_weekday_to_order_dishes(order, True)
+                sex_k = (settings.FEMALE_K if order.sex == 'female' else 1.0)
+                loop_cnt = (12 if order.days > 12 else order.days)
+                for i in range(loop_cnt):
+                    weekday = (order.first_date.weekday() + i) % 12
+                    order_dishes = weekday_to_order_dishes[weekday]
+                    dishes_info = []
+                    for dish in order_dishes:
+                        dishes_info.append({
+                            'numerated_type': numerated_type[dish.type],
+                            'type': verbose_type[dish.type],
+                            'name': dish.name,
+                            'weight': str(dish.weight * sex_k)
+                        })
+                    order_data_raw[weekday] = sorted(dishes_info, key=lambda x: x['numerated_type'])
+                for weekday_number, dishes in OrderedDict(sorted(order_data_raw.items(), key=lambda t: t[0])).items():
+                    order_data['info'].append({
+                        'weekday': {
+                            'number': weekday_number,
+                            'string': weekday_number_to_string[weekday_number]
+                        },
+                        'dishes': dishes
+                    })
+                orders_active.append(order_data)
+        context['orders']['active'] = orders_active
+
+
+@csrf_protect
+@login_required
+def account_load_orders(request, language, id):
+    if request.POST.get('last_order_id'):
+        last_order_id = int(request.POST.get('last_order_id'))
+        profile = Profile.objects.get(user=request.user)
+        orders_qs = Order.objects.filter(
+            profile=profile,
+            id__lt=last_order_id
+        ).union(Order.objects.filter(
+            phone=profile.phone,
+            is_called=True,
+            id__lt=last_order_id
+        )).order_by('-created')
+        json_orders = generate_orders_json(orders_qs)
+        return JsonResponse({
+            'success': True,
+            'orders': json_orders['orders'],
+            'today': datetime.date.today().strftime('%e.%m.%Y'),
+            'all_orders_loaded': json_orders['all_orders_loaded']
+        })
+
+
+@csrf_protect
+@login_required
+def account_order_extend_load(request, language, id):
+    if request.POST.get('order_id'):
+        order_id = int(request.POST.get('order_id'))
+        profile = Profile.objects.get(user=request.user)
+        if Order.objects.filter(id=order_id, profile=profile):
+            order = Order.objects.get(id=order_id, profile=profile)
+            day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+            first_date_delay = (2 if int(day) % 2 == 0 else 3)
+            first_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(
+                days=first_date_delay)
+            if order.last_date >= first_date:
+                first_date = order.last_date + datetime.timedelta(days=1)
+            male_price_list, female_price_list = get_menu_to_price_lists(order.menu)
+            if order.sex == 'male':
+                weekday_to_price = male_price_list
+            elif order.sex == 'female':
+                weekday_to_price = female_price_list
+            home_settings = HomePageSettings.objects.get(active=True)
+            days_to_sales = {
+                1: home_settings.order_sale_1,
+                2: home_settings.order_sale_2,
+                4: home_settings.order_sale_4,
+                6: home_settings.order_sale_6,
+                14: home_settings.order_sale_14
+            }
+            price_list = {}
+            dishes_ok = True
+            for days in [1, 2, 4, 6, 14]:
+                price = Decimal(0.00)
+                weekdays_allowed = []
+                cnt = 0
+                excluding = (first_date - datetime.timedelta(days=1)).weekday()
+                for i in range(days + days // 7):
+                    number = (first_date.weekday() + i + cnt) % 14
+                    if number == excluding:
+                        number = (number + 1) % 14
+                        cnt += 1
+                        excluding += 7
+                    weekdays_allowed.append(number)
+                for weekday in weekdays_allowed:
+                    weekday_price = weekday_to_price[weekday]
+                    price += Decimal(weekday_price)
+                price = round(Decimal(float(price) - float(days_to_sales[days])), 2)
+                price_list[days] = {
+                    'price': price,
+                    'sale': Decimal(days_to_sales[days])
+                }
+            return JsonResponse({'success': True, 'price_list': price_list, 'dishes_ok': dishes_ok})
+
+
+@csrf_protect
+@login_required
+def account_order_extend(request, language, id):
+    if request.POST.get('order_id') and request.POST.get('days'):
+        order_id = int(request.POST.get('order_id'))
+        days = int(request.POST.get('days'))
+        profile = Profile.objects.get(user=request.user)
+        if Order.objects.filter(id=order_id, profile=profile):
+            order = Order.objects.get(id=order_id, profile=profile)
+            day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+            first_date_delay = (2 if int(day) % 2 == 0 else 3)
+            first_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(
+                days=first_date_delay)
+            if order.last_date >= first_date:
+                first_date = order.last_date + datetime.timedelta(days=1)
+            name = profile.name + ' ' + profile.surname
+            new_order = Order(
+                profile=profile,
+                phone=profile.phone,
+                email=profile.user.email,
+                name=name,
+                address=profile.address,
+                sex=order.sex,
+                menu=order.menu,
+                first_date=first_date,
+                days=days,
+                is_called=True
+            )
+
+            # Send payment mail
+            new_order = new_order.save()
+            if new_order:
+                order = new_order
+                return JsonResponse({
+                    'success': True,
+                    'order': {
+                        'menu': {
+                            'type': order.menu.type,
+                            'description': order.menu.description
+                        },
+                        'id': order.id,
+                        'is_payed': order.is_payed,
+                        'first_date': order.first_date.strftime('%e.%m.%Y'),
+                        'price': order.price,
+                        'days': order.days,
+                        'last_date': order.last_date.strftime('%e.%m.%Y'),
+                    },
+                    'today': datetime.date.today().strftime('%e.%m.%Y'),
+                    'dishes_ok': True
+                })
+            else:
+                return JsonResponse({'success': True, 'dishes_ok': False})
+    return JsonResponse({'success': False})
+
+
+@csrf_protect
+@login_required
+def account_order_show_dishes(request, language, id):
+    if request.POST.get('order_id'):
+        order_id = int(request.POST.get('order_id'))
+        profile = Profile.objects.get(user=request.user)
+        if Order.objects.filter(id=order_id, profile=profile):
+            order = Order.objects.get(id=order_id, profile=profile)
+            sex_k = (settings.FEMALE_K if order.sex == 'female' else 1.0)
+            weekday_to_order_dishes = get_weekday_to_order_dishes(order, True)
+            weekday_to_all_dishes = get_menu_to_dishes(order.menu, True)
+            excluding = order.excluding_weekday
+            cnt = 0
+            dates = {}
+            for i in range(order.days + order.days // 7):
+                number = (order.first_date.weekday() + i + cnt) % 14
+                date = order.first_date + datetime.timedelta(i + cnt)
+                if number == excluding:
+                    number = (number + 1) % 14
+                    cnt += 1
+                    date = date + datetime.timedelta(1)
+                    excluding += 7
+                dates[date] = number
+            home_settings = HomePageSettings.objects.get(active=True)
+            daytime_translate = {
+                'drink': home_settings.drink,
+                'breakfast': home_settings.breakfast,
+                'second-breakfast': home_settings.second_breakfast,
+                'lunch': home_settings.lunch,
+                'high-tea': home_settings.high_tea,
+                'dinner': home_settings.dinner,
+            }
+            dishes_all = {}
+            dishes_now = {}
+            day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+            allowed_change_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(days=2)
+            for date, weekday in dates.items():
+                date_str = date.strftime('%d.%m')
+                if weekday_to_all_dishes[weekday]:
+                    dishes_all[date_str] = {f'weekday-{weekday}': {}}
+                    dishes_now[date_str] = {f'weekday-{weekday}': {}}
+                    for daytime in daytime_translate.keys():
+                        if daytime not in dishes_all[date_str][f'weekday-{weekday}'].keys():
+                            dishes_all[date_str][f'weekday-{weekday}'][f'daytime-{daytime}'] = []
+                        if daytime not in dishes_now[date_str][f'weekday-{weekday}'].keys():
+                            dishes_now[date_str][f'weekday-{weekday}'][f'daytime-{daytime}'] = []
+                        for dish in weekday_to_all_dishes[weekday].filter(type=daytime):
+                            dish_data = {
+                                'id': dish.id,
+                                'name': dish.name,
+                                'description': dish.description,
+                                'calories': round(dish.calories * sex_k),
+                                'weight': round(dish.weight * sex_k),
+                                'image_url': dish.image.url,
+                                'image_webp_url': dish.image_webp.url,
+                            }
+                            if date >= allowed_change_date:
+                                dishes_all[date_str][f'weekday-{weekday}'][f'daytime-{daytime}'].append(dish_data)
+                            if dish in weekday_to_order_dishes[weekday].filter(type=daytime):
+                                dishes_now[date_str][f'weekday-{weekday}'][f'daytime-{daytime}'].append(dish_data)
+            return JsonResponse({'success': True, 'dishes_all': dishes_all, 'dishes_now': dishes_now,
+                                 'daytime_translate': daytime_translate})
+    return JsonResponse({'success': False})
+
+
+@csrf_protect
+@login_required
+def account_order_change_dish(request, language, id):
+    if request.POST.get('order_id'):
+        order_id = int(request.POST.get('order_id'))
+        profile = Profile.objects.get(user=request.user)
+        day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+        this_year = datetime.date(int(year) - 1, 6, 1)
+        if Order.objects.filter(id=order_id, profile=profile, created__gte=this_year):
+            order = Order.objects.get(id=order_id, profile=profile, created__gte=this_year)
+            day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+            allowed_change_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(days=2)
+            date_recieved = request.POST.get('date')
+            last_dish_id = int(request.POST.get('last_dish_id'))
+            new_dish_id = int(request.POST.get('new_dish_id'))
+            weekday_to_order_dishes = get_weekday_to_order_dishes(order, False)
+            weekday_to_all_dishes = get_menu_to_dishes(order.menu, True)
+            excluding = order.excluding_weekday
+            cnt = 0
+            dates = {}
+            for i in range(order.days + order.days // 7):
+                number = (order.first_date.weekday() + i + cnt) % 14
+                date = order.first_date + datetime.timedelta(i + cnt)
+                if number == excluding:
+                    number = (number + 1) % 14
+                    cnt += 1
+                    date = date + datetime.timedelta(1)
+                    excluding += 7
+                dates[date] = number
+            for date, weekday in dates.items():
+                date_str = date.strftime('%d.%m')
+                if date_str == date_recieved:
+                    if date >= allowed_change_date:
+                        order_dishes = weekday_to_order_dishes[weekday]
+                        if order_dishes.filter(id=last_dish_id):
+                            last_dish = order_dishes.get(id=last_dish_id)
+                            new_dish = Dish.objects.get(id=new_dish_id)
+                            if new_dish in weekday_to_all_dishes[weekday]:
+                                order_dishes.remove(last_dish)
+                                order_dishes.add(new_dish)
+                                return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+
+@csrf_protect
+@login_required
+def account_order_pay_info(request, language, id):
+    if request.POST.get('order_id'):
+        order_id = int(request.POST.get('order_id'))
+        profile = Profile.objects.get(user=request.user)
+        if Order.objects.filter(id=order_id, profile=profile):
+            order = Order.objects.get(id=order_id, profile=profile)
+            if settings.LOCAL:
+                group_private_token = 'XXXXXX'
+                payment_url = 'https://testicredit.rivhit.co.il/API/PaymentPageRequest.svc/GetUrl'
+            else:
+                group_private_token = settings.GROUP_PRIVATE_TOKEN
+                payment_url = 'https://icredit.rivhit.co.il/API/PaymentPageRequest.svc/GetUrl'
+            lang = 'en'
+            if request.session[settings.LANGUAGE_COOKIE_NAME] == 'he':
+                lang = 'he'
+            payment_data = {
+                'CustomerLastName': profile.surname,
+                'CustomerFirstName': profile.name,
+                'EmailAddress': profile.user.email,
+                'Address': profile.address,
+                'PhoneNumber': profile.phone,
+                'Items': [{
+                    'Id': 0,
+                    'CatalogNumber': order.id,
+                    'UnitPrice': order.price,
+                    'Quantity': 1,
+                    'Description': f'{order.menu.type}: {order.first_date} - {order.last_date}',
+                }],
+                'GroupPrivateToken': group_private_token,
+                'DocumentLanguage': lang,
+                'MaxPayments': 9999,
+                'CreditFromPayment': 9999,
+                'HideItemList': False,
+                'CreateToken': True,
+                'ExemptVAT': False,
+                'RedirectURL': 'lol',
+                'IPNURL': 'lol',
+                'City': 'lol',
+                'POB': 'P.O. Box',
+                'PhoneNumber2': '123',
+            }
+            return JsonResponse({
+                'success': True,
+                'payment_url': payment_url,
+                'payment_data': payment_data,
+            })
+    return JsonResponse({'success': False})
+
+
+@csrf_protect
+@login_required
+def account_change_password(request, language, id):
+    """ Смена пароля """
+    form = PasswordChangeForm(user=request.user, data=request.POST or None)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({**form.errors, **{'success': False}})
+
+
+@csrf_protect
+@login_required
+def account_change_email(request, language, id, step):
+    """ Смена email """
+    if step == 1:
+        form = AccountChangeEmailForm(request, {'username': request.user.username,
+                                                'password': request.POST.get('password'),
+                                                'new_email': request.POST.get('new_email')})
+        if form.is_valid():
+            send_auth_mail(request, 'change-email', request.user, form.cleaned_data['new_email'])
+            return JsonResponse({'success': True, 'username': request.user.username})
+        else:
+            if '__all__' in form.errors.keys():
+                t = WrapperTranslations.objects.get(active=True)
+                form.errors['password'] = [t.wrong_password]
+                del form.errors['__all__']
+            return JsonResponse({**form.errors, **{'success': False}})
+    elif step == 2:
+        response = key_verification(request, language)
+        if response['success']:
+            user = request.user
+            key_model = EmailVerification.objects.get(user=user)
+            user.email = key_model.new_email
+            user.save()
+            key_model.delete()
+        return JsonResponse(response)
+
+
+@csrf_protect
+@login_required
+def account_change_personal_data(request, language, id):
+    """ Смена личных данных """
+    form = AccountChangePersonalDataForm(request, {'username': request.user.username,
+                                                   'password': request.POST.get('password'),
+                                                   'new': request.POST.get('new')})
+    if form.is_valid():
+        fcd = form.cleaned_data
+        profile = Profile.objects.get(user=request.user)
+        req = ChangePersonalDataRequest(profile=profile, new=fcd['new'])
+        req_type = request.POST.get('type')
+        if req_type in ['name', 'surname', 'phone', 'address']:
+            req.type = req_type
+            req.save()
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False})
+    else:
+        if '__all__' in form.errors.keys():
+            t = WrapperTranslations.objects.get(active=True)
+            form.errors['password'] = [t.wrong_password]
+            del form.errors['__all__']
+        return JsonResponse({**form.errors, **{'success': False}})
+
+
+def is_moderator(user):
+    return Profile.objects.get(user=user).is_moderator
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_fix_dishes(request, language, id):
+    for menu in Menu.objects.all():
+        for day_i, day_dishes in enumerate(
+                [menu.monday, menu.tuesday, menu.wednesday, menu.thursday, menu.friday, menu.saturday, menu.sunday,
+                 menu.monday2, menu.tuesday2, menu.wednesday2, menu.thursday2, menu.friday2, menu.saturday2,
+                 menu.sunday2, ]):
+            all_dishes = \
+                [menu.monday_other, menu.tuesday_other, menu.wednesday_other, menu.thursday_other, menu.friday_other,
+                 menu.saturday_other, menu.sunday_other, menu.monday_other2, menu.tuesday_other2, menu.wednesday_other2,
+                 menu.thursday_other2, menu.friday_other2, menu.saturday_other2, menu.sunday_other2][day_i]
+            for dish in day_dishes.all():
+                if dish not in all_dishes.all():
+                    all_dishes.add(dish)
+    return JsonResponse({'success': True})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_download_reports(request, language, id):
+    if ' — ' in request.POST.get('dates'):
+        date_from_str, date_to_str = request.POST.get('dates').split(' — ')
+        date_from_splt = date_from_str.split('.')
+        date_to_splt = date_to_str.split('.')
+        date_from = datetime.date(int(date_from_splt[2]), int(date_from_splt[1]), int(date_from_splt[0]))
+        date_to = datetime.date(int(date_to_splt[2]), int(date_to_splt[1]), int(date_to_splt[0]))
+    elif 'אל' in request.POST.get('dates'):
+        date_from_str, date_to_str = request.POST.get('dates').split(' אל ')
+        print(request.POST.get('dates').split(' '))
+        date_from_splt = date_from_str.split('.')
+        date_to_splt = date_to_str.split('.')
+        date_from = datetime.date(int(date_from_splt[2]), int(date_from_splt[1]), int(date_from_splt[0]))
+        date_to = datetime.date(int(date_to_splt[2]), int(date_to_splt[1]), int(date_to_splt[0]))
+    else:
+        day, month, year = request.POST.get('dates').split('.')
+        date_from = datetime.date(int(year), int(month), int(day))
+        date_to = date_from
+    orders = Order.objects.filter(first_date__gte=date_from)
+    output = BytesIO()
+    book = Workbook(output, {'in_memory': True})
+    sheet = book.add_worksheet(f'Заказы {date_from.strftime("%d.%m.%y")} - {date_to.strftime("%d.%m.%y")}')
+    sheet_data = []
+    if orders:
+        headers = ['#', 'План', 'Пол', 'Дней', 'Заказчик', 'Телефон', 'Адрес', 'С', 'По', 'Цена', 'Звонок', 'Оплата',
+                   'Создано']
+        dates_range = [date_from + datetime.timedelta(days=x) for x in range((date_to - date_from).days)]
+        for date in dates_range:
+            headers.append(date.strftime('%d.%b'))
+        sheet_data.append(headers)
+        for order in orders:
+            order_data = [order.id, order.menu.type, ('Мужской' if order.sex == 'male' else 'Женский'), order.days,
+                          order.name, order.phone, order.address, order.first_date.strftime('%d.%m.%Y'),
+                          order.last_date.strftime('%d.%m.%Y'), order.price, ('+' if order.is_called else '-'),
+                          ('+' if order.is_payed else '-'), order.created.strftime('%H:%M:%S %d.%m.%Y')]
+            weekday_order_dishes = get_weekday_to_order_dishes(order, False)
+            weekdays_allowed = {}
+            locale.setlocale(
+                category=locale.LC_ALL,
+                locale="Russian"
+            )
+            for i in range(order.days + order.days // 7):
+                number = (order.first_date.weekday() + i) % 14
+                date = order.first_date + datetime.timedelta(days=i)
+                weekdays_allowed[date.strftime('%d.%m')] = number
+            for date in dates_range:
+                order_data.append('')
+                if date.strftime('%d.%m') in weekdays_allowed.keys():
+                    day_dishes_names = [dish.name_ru for dish in
+                                        weekday_order_dishes[weekdays_allowed[date.strftime('%d.%m')]].all().order_by(
+                                            'type')]
+                    order_data[-1] = '\n\r'.join(day_dishes_names)
+            sheet_data.append(order_data)
+        column_widths = [0] * len(headers)
+        cell_format = book.add_format()
+        cell_format.set_text_wrap()
+        cell_format.set_align('center')
+        cell_format.set_align('vcenter')
+        for row_i, row in enumerate(sheet_data):
+            for col_i, col in enumerate(row):
+                sheet.write(row_i, col_i, col, cell_format)
+                col_width = (len(str(col)) * 1.2)
+                if '\n\r' in str(col):
+                    col_parts_max_len = 0
+                    for col_part in col.split('\n\r'):
+                        col_parts_max_len = max(col_parts_max_len, len(col_part))
+                    col_width = col_parts_max_len * 1.2
+                column_widths[col_i] = max(col_width, column_widths[col_i])
+        for col_i, col_width in enumerate(column_widths):
+            sheet.set_column(col_i, col_i, col_width)
+        book.close()
+        output.seek(0)
+        filename = 'report_' + date_from.strftime('%d-%m-%Y') + '_' + date_to.strftime('%d-%m-%Y')
+        response = HttpResponse(output.read(), content_type='application/ms-excel')
+        response['Content-Disposition'] = 'attachment; filename="' + filename + '.xlsx"'
+        output.close()
+        return response
+    else:
+        return HttpResponse('За данный период нет отчётов.')
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_make_order_payed(request, language, id):
+    Order.objects.filter(id=request.POST['order_id']).update(is_payed=True)
+    return JsonResponse({'success': True})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_change_request_delete(request, language, id):
+    """ Модерация: отклонить смену личных данных """
+    ChangePersonalDataRequest.objects.get(id=request.POST['change_id']).delete()
+    return JsonResponse({'success': True})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_change_request_exec(request, language, id):
+    """ Модерация: принять смену личных данных """
+    ChangePersonalDataRequest.objects.filter(id=request.POST['change_id']).update(done=True)
+    return JsonResponse({'success': True})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_order_call_request_delete(request, language, id):
+    """ Модерация: отклонить заказ по телефону """
+    Order.objects.get(id=request.POST.get('id')).delete()
+    return JsonResponse({'success': True})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_order_call_request_submit(request, language, id):
+    """ Модерация: принять заказ по телефону """
+    order = Order.objects.get(id=request.POST.get('id'))
+    form = OrderCallForm(request.POST)
+    if form.is_valid():
+        fcd = form.cleaned_data
+        order.update(name=fcd['name'], email=fcd['email'], address=fcd['address'], comment=fcd['comment'],
+                     is_called=True)
+        # send payment mail/sms
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({**form.errors, **{'success': False}})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_call_request_load_price(request, language, id):
+    """ Модерация: Загрузить цену """
+    menu = Menu.objects.get(type=request.POST.get('menu'))
+    days = int(request.POST.get('days'))
+    sex = request.POST.get('sex')
+    day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+    first_date_delay = (2 if int(day) % 2 == 0 else 3)
+    first_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(
+        days=first_date_delay)
+    if request.POST.get('first_date'):
+        day, month, year = request.POST.get('first_date').split('.')
+        first_date = datetime.date(int(year), int(month), int(day))
+    male_price_list, female_price_list = get_menu_to_price_lists(menu)
+    if sex == 'male':
+        weekday_to_price = male_price_list
+    elif sex == 'female':
+        weekday_to_price = female_price_list
+    home_settings = HomePageSettings.objects.get(active=True)
+    days_to_sales = {
+        1: home_settings.order_sale_1,
+        2: home_settings.order_sale_2,
+        4: home_settings.order_sale_4,
+        6: home_settings.order_sale_6,
+        14: home_settings.order_sale_14
+    }
+    price = Decimal(0.00)
+    weekdays_allowed = []
+    cnt = 0
+    excluding = (first_date - datetime.timedelta(days=1)).weekday()
+    for i in range(days + days // 7):
+        number = (first_date.weekday() + i + cnt) % 14
+        if number == excluding:
+            number = (number + 1) % 14
+            cnt += 1
+            excluding += 7
+        weekdays_allowed.append(number)
+    for weekday in weekdays_allowed:
+        weekday_price = weekday_to_price[weekday]
+        price += Decimal(weekday_price)
+    price = round(Decimal(float(price) - float(days_to_sales[days])), 2)
+    return JsonResponse({'success': True, 'price': price})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_call_request_delete(request, language, id):
+    """ Модерация: отклонить заказ через звонок """
+    CallRequest.objects.get(id=request.POST.get('id')).delete()
+    return JsonResponse({'success': True})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_call_request_submit(request, language, id):
+    """ Модерация: создать заказ через звонок """
+    form = OrderForm(request.POST)
+    if form.is_valid():
+        fcd = form.cleaned_data
+        phone = fcd['phone']
+        email = fcd['email']
+        address = fcd['address']
+        name = request.POST.get('name')
+        days = int(request.POST.get('days'))
+        sex = request.POST.get('sex')
+        menu = Menu.objects.get(active=True, type=request.POST.get('menu'))
+        day, month, year = timezone.now().strftime('%e-%m-%Y').split('-')
+        first_date_delay = (2 if int(day) % 2 == 0 else 3)
+        first_date = datetime.date(int(year), int(month), int(day)) + datetime.timedelta(
+            days=first_date_delay)
+        if request.POST.get('first_date'):
+            day, month, year = request.POST.get('first_date').split('.')
+            first_date = datetime.date(int(year), int(month), int(day))
+        new_order = Order(
+            sex=sex,
+            menu=menu,
+            first_date=first_date,
+            days=days,
+            phone=phone,
+            name=name,
+            email=email,
+            address=address,
+            is_called=True
+        )
+        new_order.save()
+        # send payment mail/sms
+        CallRequest.objects.get(id=request.POST.get('id')).delete()
+        return JsonResponse({'success': True, 'id': new_order.id})
+    else:
+        return JsonResponse({**form.errors, **{'success': False}})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_review_request_delete(request, language, id):
+    """ Модерация: отклонить отзыв """
+    Review.objects.get(id=request.POST.get('id')).delete()
+    return JsonResponse({'success': True})
+
+
+@csrf_protect
+@login_required
+@user_passes_test(is_moderator)
+def moderator_account_review_request_submit(request, language, id):
+    """ Модерация: принять отзыв """
+    form = ReviewForm(request.POST, request.FILES)
+    if form.is_valid():
+        review = form.save()
+        review.is_moderated = True
+        review.save()
+        Review.objects.get(id=request.POST['id']).delete()
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({**form.errors, **{'success': False}})

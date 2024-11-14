@@ -1,0 +1,14 @@
+{% extends 'emails/html/ru/wrapper.html' %}
+
+
+
+{% block content %}
+
+    <p>Вы запросили <b>смену email</b> на <a href="https://{{ fixed.base }}/ru/" target="_blank">нашем сайте</a>.</p>
+    <p>В качестве нового email будет использоваться этот почтовый ящик.</p>
+    <p>Для подтверждения операции введите код:</p>
+    <p class="h1 code">{{ code }}</p>
+    <p>Дата операции: <b>{{ created|date:"d.m.Y" }}</b>.</p>
+    <p>Если это сделали не вы, не передавайте никому этот код.</p>
+
+{% endblock %}

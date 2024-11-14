@@ -1,0 +1,2659 @@
+change_allowed{% extends 'wrapper.html' %}
+{% load static %}
+
+{% block metadata %}
+
+    <title>{{ fixed.site_name }} {{ fixed.separator }} {{ profile.name }} {{ profile.surname }} {{ fixed.separator }} {{ page.title }}</title>
+
+{% endblock %}
+
+
+
+{% block styles %}
+
+    <link rel="stylesheet" href="{% static 'css/account_styles.css' %}" type="text/css">
+    <link rel="stylesheet" href="{% static 'css/flatpickr-4.6.6/flatpickr.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/flatpickr-4.6.6/confetti.css' %}">
+
+{% endblock %}
+
+
+
+{% block content %}
+
+    <nav class="navbar d-md-fixed navbar-light bg-light p-2 shadow fixed-top">
+        <div class="container">
+            <div class="d-flex w-100 align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <a href="/" class="navbar-brand">
+                        <img src="{{ fixed.logo_webp.url }}"
+                             onerror="this.onerror=null; this.src='{{ fixed.logo.url }}'"
+                             alt="{{ fixed.base }} logo">
+                    </a>
+                    <div class="dropdown default ml-3 mr-1" data-toggle="tooltip" data-placement="right"
+                         title="{{ wt.language }}">
+                        <button type="button" class="btn default btn-sm dropdown-toggle" data-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false">
+                            {% if LANGUAGE_CODE == 'ru' %}RU{% else %}HE{% endif %}
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-left language-change">
+                            <div id="language-ru" class="dropdown-item{% if LANGUAGE_CODE == 'ru' %} active{% endif %}">
+                                Русский
+                            </div>
+                            <div id="language-he" class="dropdown-item{% if LANGUAGE_CODE == 'he' %} active{% endif %}">
+                                עִברִית
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <a href="/{{ LANGUAGE_CODE }}/logout/" class="btn btn-sm default outline">{{ wt.logout }}</a>
+            </div>
+        </div>
+    </nav>
+    <div class="w-100 h-100" style="background-color: #e7eaed !important;">
+        <div class="container bg-gray text-left pt-5" style="background-color: #e7eaed !important;">
+            <div class="d-flex align-items-center justify-content-center my-5">
+                {% if LANGUAGE_CODE == 'he' %}
+                    <a href="../" class="btn default">{{ page.home }}</a>
+                    <h3 class="d-block ml-auto mb-2">!{{ profile.name }} {{ profile.surname }} {{ page.hello }}</h3>
+                {% else %}
+                    <h3 class="d-block mr-auto mb-2">{{ page.hello }}, {{ profile.surname }} {{ profile.name }}!</h3>
+                    <a href="../" class="btn default">{{ page.home }}</a>
+                {% endif %}
+            </div>
+            <div id="account-tabs">
+                <ul class="nav nav-pills mb-3 justify-content-center">
+                    <li class="nav-item mx-1 mb-3">
+                        <a class="nav-link active" id="orders-tab" data-toggle="pill" href="#orders" role="tab"
+                           aria-controls="orders" aria-selected="true">{{ page.orders }}{% if profile.is_moderator %} ({{ orders.completed|length }}){% endif %}</a>
+                    </li>
+                    {% if profile.is_moderator %}
+                        <li class="nav-item mx-1 mb-3">
+                            <a class="nav-link" id="not-completed-orders-tab" data-toggle="pill"
+                               href="#not-completed-orders" role="tab"
+                               aria-controls="not-completed-orders"
+                               aria-selected="false">Необработанные заказы ({{ orders.not_completed|length }})</a>
+                        </li>
+                        <li class="nav-item mx-1 mb-3">
+                            <a class="nav-link" id="call-requests-tab" data-toggle="pill" href="#call-requests"
+                               role="tab"
+                               aria-controls="call-requests" aria-selected="false">Запросы звонков ({{ call_requests|length }})</a>
+                        </li>
+                        <li class="nav-item mx-1 mb-3">
+                            <a class="nav-link" id="change-requests-tab" data-toggle="pill" href="#change-requests"
+                               role="tab"
+                               aria-controls="change-requests" aria-selected="false">Запросы смены личных данных ({{ change_requests|length }})</a>
+                        </li>
+                        <li class="nav-item mx-1 mb-3">
+                            <a class="nav-link" id="review-requests-tab" data-toggle="pill" href="#review-requests"
+                               role="tab"
+                               aria-controls="review-requests" aria-selected="false">Отзывы ({{ reviews|length }})</a>
+                        </li>
+                        <li class="nav-item mx-1 mb-3">
+                            <a class="nav-link" id="stats-tab" data-toggle="pill" href="#stats"
+                               role="tab"
+                               aria-controls="stats" aria-selected="false">Отчёты</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item mx-1 mb-3">
+                            <a class="nav-link" id="personal-info-tab" data-toggle="pill" href="#personal-info"
+                               role="tab"
+                               aria-controls="personal-info" aria-selected="false">{{ page.personal_info }}</a>
+                        </li>
+                    {% endif %}
+                </ul>
+                <div class="tab-content mb-5">
+                    {% if profile.is_moderator %}
+                        <div class="tab-pane fade show active" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+                            <div class="row">
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="not-completed-orders" role="tabpanel"
+                             aria-labelledby="not-completed-orders-tab">
+                            <div class="row">
+                                {% for order in orders.not_completed %}
+                                    <form class="order-complete-form col-12 col-md-6 mb-5">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="id" value="{{ order.id }}">
+                                        <div class="card">
+                                            <div class="card-body mb-0">
+                                                <h4 class="card-title font-weight-bold mb-0">{{ order.menu.name }}</h4>
+                                            </div>
+                                            <ul class="list-group list-group-flush">
+                                                <li class="list-group-item">
+                                                    <h5 class="h5 mb-0"><i class="far fa-hashtag"></i>Номер
+                                                        заказа: {{ order.id }}</h5>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h5 class="h5 mb-0"><i
+                                                            class="far fa-phone"></i>{{ wt.user_phone }}: {{ order.phone }}
+                                                    </h5>
+                                                </li>
+                                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                                    {% if order.last_date != order.first_date %}
+                                                        <h5 class="h5 mb-0">{{ order.first_date|date:"d.m.Y" }}
+                                                            - {{ order.last_date|date:"d.m.Y" }}</h5>
+                                                    {% else %}
+                                                        <h5 class="h5 mb-0">{{ order.first_date|date:"d.m.Y" }}</h5>
+                                                    {% endif %}
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h5 class="h5 mb-0"><i
+                                                            class="far fa-clock"></i>Дней: {{ order.days }}
+                                                    </h5>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h5 class="h5 mb-0"><i
+                                                            class="far fa-coin"></i>Цена: {{ order.price }} ₪
+                                                    </h5>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h5 class="h5 mb-0"><i class="far fa-wallet"></i>Метод оплаты: {% if order.payment_type == 'card_phone' %}Картой по телефону{% elif order.payment_type == 'card_delivery' %}Картой курьеру{% else %}Наличными курьеру{% endif %}
+                                                    </h5>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <label class="h5 w-100 mb-0"><i
+                                                            class="far fa-user"></i>Заказчик:<br><br>
+                                                        <input type="text" name="name"
+                                                               class="form-control w-100 default"
+                                                               value="{{ order.name }}">
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <label class="h5 w-100 mb-0"><i class="far fa-at"></i>Email:<br><br>
+                                                        <input type="email" name="email"
+                                                               class="form-control w-100 default" value="{% if order.email %}{{ order.email }}{% endif %}">
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <label class="h5 w-100 mb-0"><i
+                                                            class="far fa-map"></i>Адрес доставки:<br><br>
+                                                        <input type="text" name="address"
+                                                               class="form-control w-100 default" value="{% if order.address %}{{ order.address }}{% endif %}">
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <label class="h5 w-100 mb-0"><i
+                                                            class="far fa-comment-dots"></i>Комментарий:<br><br>
+                                                        <input type="text" name="comment"
+                                                               class="form-control w-100 default"
+                                                               value="{% if order.comment %}{{ order.comment }}{% endif %}">
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                                    <button class="d-block btn btn-sm red order-complete-delete">
+                                                        Удалить
+                                                    </button>
+                                                    <button class="d-block btn btn-sm default order-complete-submit">
+                                                        Подтвердить
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </form>
+                                {% empty %}
+                                    <div class="col-12 text-center">
+                                        <h5 class="h5 mb-3">Нет задач на модерацию</h5>
+                                        <a href="" class="btn btn-sm default">Обновить</a>
+                                    </div>
+                                {% endfor %}
+
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="call-requests" role="tabpanel"
+                             aria-labelledby="call-requests-tab">
+                            <div class="row">
+                                {% for call_request in call_requests %}
+                                    <form class="call-request-form col-12 col-md-6 mb-5">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="id" value="{{ call_request.id }}">
+                                        <input type="hidden" name="name" value="{{ call_request.name }}">
+                                        <input type="hidden" name="phone" value="{{ call_request.phone }}">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h5 class="h5"><i
+                                                        class="far fa-phone"></i>Телефон: {{ call_request.phone }}
+                                                </h5>
+                                                <h5 class="h5"><i
+                                                        class="far fa-user"></i>Заказчик: {{ call_request.name }}
+                                                </h5>
+                                            </div>
+                                            <ul class="list-group list-group-flush">
+                                                <li class="list-group-item">
+                                                    <h5 class="h5 mb-0">Пол:
+                                                        <input type="hidden" name="sex" value="male">
+                                                        <div class="mx-3 btn-group btn-group-toggle"
+                                                             data-toggle="buttons">
+                                                            <label class="btn blue active">
+                                                                <i class="fas fa-male"></i>
+                                                                <input type="radio" name="sex_check" id="male"
+                                                                       autocomplete="off" checked>
+                                                            </label>
+                                                            <label class="btn red">
+                                                                <i class="fas fa-female"></i>
+                                                                <input type="radio" name="sex_check" id="female"
+                                                                       autocomplete="off">
+                                                            </label>
+                                                        </div>
+                                                    </h5>
+                                                </li>
+                                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                                    <label class="h5 w-100 mb-0">Меню:<br><br>
+                                                        <select class="form-control default" name="menu">
+                                                            <option value="Comfort Fit">Comfort Fit</option>
+                                                            <option value="Active Fit">Active Fit</option>
+                                                            <option value="Express Fit">Express Fit</option>
+                                                            <option value="Gain">Gain</option>
+                                                            <option value="Daily">Daily</option>
+                                                            <option value="Vegeterian">Vegeterian</option>
+                                                        </select>
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <label class="h5 w-100 mb-0"><i
+                                                            class="far fa-clock"></i>Дней:<br><br>
+                                                        <select class="form-control default" name="days">
+                                                            <option value="1">1</option>
+                                                            <option value="2">2</option>
+                                                            <option value="4">4</option>
+                                                            <option value="6">6</option>
+                                                            <option value="14">14</option>
+<option value="26">26</option>
+                                                        </select>
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                                    <label class="h5 w-100 mb-0"><i class="far fa-calendar"></i>Первая
+                                                        дата:<br><br>
+                                                        <input type="text" name="first_date"
+                                                               class="flatpickr-first-date form-control w-100 default">
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <label class="h5 w-100 mb-0"><i class="far fa-at"></i>Email:<br><br>
+                                                        <input type="email" name="email"
+                                                               class="form-control w-100 default">
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <label class="h5 w-100 mb-0"><i
+                                                            class="far fa-map"></i>Адрес доставки:<br><br>
+                                                        <input type="text" name="address"
+                                                               class="form-control w-100 default">
+                                                    </label>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h6 class="text-left">{{ wt.payment_type }}</h6>
+                                                    <select class="custom-select default" name="payment_type">
+                                                        <option value="card_phone" selected>{{ wt.card_phone }}</option>
+                                                        <option value="card_delivery">{{ wt.card_delivery }}</option>
+                                                        <option value="cash_delivery">{{ wt.cash_delivery }}</option>
+                                                    </select>
+                                                </li>
+                                                <li class="list-group-item">
+                                                    <h5 class="h5 w-100 mb-0"><i class="far fa-coin"></i>Цена: <span
+                                                            class="price">?</span> ₪</h5>
+                                                </li>
+                                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                                    <button class="d-block btn btn-sm red call-request-delete">Удалить
+                                                    </button>
+                                                    <button class="d-block btn btn-sm default call-request-submit">
+                                                        Подтвердить
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </form>
+                                {% empty %}
+                                    <div class="col-12 text-center">
+                                        <h5 class="h5 mb-3">Нет задач на модерацию</h5>
+                                        <a href="" class="btn btn-sm default">Обновить</a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="change-requests" role="tabpanel"
+                             aria-labelledby="change-requests-tab">
+                            <div class="row">
+                                {% for change in change_requests %}
+                                    <div class="col-12 col-md-6 mb-5 change-request">
+                                        <div class="border p-3 rounded">
+                                            <div class="d-flex justify-content-between">
+                                                <h6 class="font-weight-bold">{{ change.profile.surname }}
+                                                    {{ change.profile.name }}</h6>
+                                                <h6 class="m-0">{{ change.created|date:"H:s - d.m.y" }}</h6>
+                                            </div>
+                                            <div class="my-4 mx-2">
+                                                {% if change.type == 'name' %}
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Смена:</h6>
+                                                        <h6 class="text-secondary d-inline-block">Имя</h6>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Предыдущее значение:</h6>
+                                                        <h6 class="text-secondary d-inline-block">{{ change.profile.name }}</h6>
+                                                    </div>
+                                                {% elif change.type == 'surname' %}
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Смена:</h6>
+                                                        <h6 class="text-secondary d-inline-block">Фамилия</h6>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Предыдущее значение:</h6>
+                                                        <h6 class="text-secondary d-inline-block">{{ change.profile.surname }}</h6>
+                                                    </div>
+                                                {% elif change.type == 'phone' %}
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Смена:</h6>
+                                                        <h6 class="text-secondary d-inline-block">Телефон</h6>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Предыдущее значение:</h6>
+                                                        <h6 class="text-secondary d-inline-block">{{ change.profile.phone }}</h6>
+                                                    </div>
+                                                {% elif change.type == 'address' %}
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Смена:</h6>
+                                                        <h6 class="text-secondary d-inline-block">Адрес</h6>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Предыдущее значение:</h6>
+                                                        <h6 class="text-secondary d-inline-block">{{ change.profile.address }}</h6>
+                                                    </div>
+                                                {% endif %}
+                                                <div>
+                                                    <h6 class="d-inline-block"
+                                                        style="min-width: 200px">Новое значение:</h6>
+                                                    <h6 class="text-secondary d-inline-block">{{ change.new }}</h6>
+                                                </div>
+                                                {% if change.profile.email %}
+                                                    <div>
+                                                        <h6 class="d-inline-block" style="min-width: 200px">Email:</h6>
+                                                        <h6 class="text-secondary d-inline-block">{{ change.profile.email }}</h6>
+                                                    </div>
+                                                {% endif %}
+                                                {% if change.profile.phone %}
+                                                    <div>
+                                                        <h6 class="d-inline-block"
+                                                            style="min-width: 200px">Телефон:</h6>
+                                                        <h6 class="text-secondary d-inline-block">{{ change.profile.phone }}</h6>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <form action="" class="my-2 change-request-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" value="{{ change.id }}" name="change_id">
+                                                <div class="d-flex justify-content-around align-items-center">
+                                                    <button class="btn btn-sm red change-request-delete">Удалить
+                                                    </button>
+                                                    <button class="btn btn-sm default change-request-exec">Выполнть
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="col-12 text-center">
+                                        <h5 class="h5 mb-3">Нет задач на модерацию</h5>
+                                        <a href="" class="btn btn-sm default">Обновить</a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="review-requests" role="tabpanel"
+                             aria-labelledby="review-requests-tab">
+                            <div class="row">
+                                {% for review_request in review_requests %}
+                                    <form class="review-request-form col-12 col-md-6 mb-5">
+                                        <div class="border rounded p-3">
+                                            {% csrf_token %}
+                                            <input type="hidden" value="{{ review_request.id }}" name="id">
+                                            <input type="hidden" value="{{ review_request.url }}" name="url">
+                                            <label class="w-100">
+                                                <h5 class="h5">Имя и фамилия автора (Русский):</h5>
+                                                <input type="text" name="name" class="w-100 form-control default mb-3"
+                                                       value="{{ review_request.name }}">
+                                                <h5 class="h5">Имя и фамилия автора (Иврит):</h5>
+                                                <input type="text" name="name_he"
+                                                       class="w-100 form-control default mb-3"
+                                                       value="{{ review_request.name }}">
+                                            </label>
+                                            <a href="{{ review_request.url }}" class="h5 mb-3 d-block" target="_blank">Ссылка
+                                                на профиль</a>
+                                            <div class="custom-file mb-3">
+                                                <input type="file" name="photo" class="custom-file-input default"
+                                                       id="review-request-{{ review_request.id }}-photo">
+                                                <label class="custom-file-label"
+                                                       for="review-request-{{ review_request.id }}-photo">Фото</label>
+                                            </div>
+                                            <h5 class="h5">Отзыв (Русский):</h5>
+                                            <textarea style="min-height: 150px; resize: none" name="content"
+                                                      class="form-control default mb-3">{{ review_request.content }}</textarea>
+                                            <h5 class="h5">Отзыв (Иврит):</h5>
+                                            <textarea style="min-height: 150px; resize: none" name="content_he"
+                                                      class="form-control default mb-3">{{ review_request.content }}</textarea>
+                                            <div class="d-flex justify-content-around align-items-center">
+                                                <button class="btn btn-sm red review-request-delete">Удалить</button>
+                                                <button class="btn btn-sm default review-request-submit">Подтвердить
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                {% empty %}
+                                    <div class="col-12 text-center">
+                                        <h5 class="h5 mb-3">Нет задач на модерацию</h5>
+                                        <a href="" class="btn btn-sm default">Обновить</a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="stats" role="tabpanel"
+                             aria-labelledby="stats-tab">
+                            <h4 class="font-weight-bold">Отчёты</h4>
+                            <div class="row mt-4">
+                                <div class="col-12 col-md-6 mb-5">
+                                    <div class="d-flex w-100 align-items-center">
+                                        <form method="post" target="_blank" action="download-reports/"
+                                              class="d-flex w-100 align-items-center justify-content-center">
+                                            {% csrf_token %}
+                                            <input type="text" name="dates"
+                                                   class="form-control form-control-sm w-100 default flatpickr-reports" style="width: fit-content"
+                                                   placeholder="Отчёты">
+                                            <button type="submit" class="btn default download-reports disabled ml-2"
+                                                    disabled="disabled" style="height: inherit !important;">Скачать
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mb-5">
+                                    <div class="d-flex w-100 align-items-center">
+                                        <form method="post" target="_blank" action="download-reports-dishes/"
+                                              class="d-flex w-100 align-items-center justify-content-center">
+                                            {% csrf_token %}
+                                            <input type="text" name="dates"
+                                                   class="form-control form-control-sm w-100 default flatpickr-reports-dishes" style="width: fit-content"
+                                                   placeholder="Блюда">
+                                            <button type="submit" class="btn default download-reports-dishes disabled ml-2"
+                                                    disabled="disabled" style="height: inherit !important;">Скачать
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mb-5">
+                                    <div class="d-flex w-100 align-items-center">
+                                        <form method="post" target="_blank" action="download-reports-delivery/"
+                                              class="d-flex w-100 align-items-center justify-content-center">
+                                            {% csrf_token %}
+                                            <input type="text" name="dates"
+                                                   class="form-control form-control-sm w-100 default flatpickr-reports-delivery" style="width: fit-content"
+                                                   placeholder="Маршрутный лист">
+                                            <button type="submit" class="btn default download-reports-delivery disabled ml-2"
+                                                    disabled="disabled" style="height: inherit !important;">Скачать
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mb-5">
+                                    <div class="d-flex w-100 align-items-center">
+                                        <form method="post" target="_blank" action="download-reports-orders/"
+                                              class="d-flex w-100 align-items-center justify-content-center">
+                                            {% csrf_token %}
+                                             <input type="text" name="date"
+                                                   class="form-control form-control-sm w-100 default flatpickr-reports-orders" style="width: fit-content"
+                                                   placeholder="Лист заказов (на печать)">
+                                            <button type="submit" class="btn default download-reports-orders disabled ml-2"
+                                                    disabled="disabled" style="height: inherit !important;">Скачать
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mb-5">
+                                    <form id="fix-dishes-form" action="" class="d-flex align-items-center justify-content-center">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn w-100 default fix-dishes">Исправить ошибки заполнения блюд</button>
+                                    </form>
+                                </div>
+                                <div class="col-12 col-md-6 mb-5">
+                                    <a href="download-backup/" target="_blank" class="btn default w-100">Скачать бэкап</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="tab-pane fade show active" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+                            <div class="row"></div>
+                            <div class="d-flex">
+                                <a href="#load-orders" class="btn btn-sm default load-orders mx-auto"
+                                   style="display: none">{{ page.load_more }}</a>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="personal-info" role="tabpanel"
+                             aria-labelledby="personal-info-tab">
+                            <div class="mb-3">
+                                <h6 class="font-weight-bold">{{ wt.user_name }}:</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control default" disabled="disabled"
+                                           value="{{ profile.name }}">
+                                    <div class="input-group-append btn-group">
+                                        <button class="btn default ChangePersonalDataModal" type="button"
+                                                data-pd="name">{{ page.change_name }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="my-3">
+                                <h6 class="font-weight-bold">{{ wt.user_surname }}:</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control default" disabled="disabled"
+                                           value="{{ profile.surname }}">
+                                    <div class="input-group-append btn-group">
+                                        <button class="btn default ChangePersonalDataModal" type="button"
+                                                data-pd="surname">{{ page.change_surname }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="my-3">
+                                <h6 class="font-weight-bold">{{ wt.password }}:</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control default" disabled="disabled"
+                                           value="••••••••">
+                                    <div class="input-group-append btn-group">
+                                        <button class="btn default" type="button" data-toggle="modal"
+                                                data-target="#ChangePasswordModal">{{ page.change_password }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="font-weight-bold">Email:</h6>
+                                <div id="ChangeEmail-group" class="input-group">
+                                    {% if profile.user.email %}
+                                        <input id="ChangeEmail-current" type="text" class="form-control default"
+                                               disabled="disabled"
+                                               value="{{ profile.user.email }}">
+                                        <div class="input-group-append btn-group">
+                                            <button class="btn default" type="button" data-toggle="modal"
+                                                    data-target="#ChangeEmailModal">{{ page.change_email }}</button>
+                                        </div>
+                                    {% else %}
+                                        <button class="btn default" type="button" data-toggle="modal"
+                                                data-target="#ChangeEmailModal">{{ page.add_email }}</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="font-weight-bold">{{ wt.user_phone }}:</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control default" disabled="disabled"
+                                           value="{{ profile.phone }}">
+                                    <div class="input-group-append btn-group">
+                                        <button class="btn default ChangePersonalDataModal" type="button"
+                                                data-pd="phone">{{ page.change_phone }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="my-0">
+                                <h6 class="font-weight-bold">{{ wt.user_address }}:</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control default" disabled="disabled"
+                                           value="{{ profile.address }}">
+                                    <div class="input-group-append btn-group">
+                                        <button class="btn default ChangePersonalDataModal" type="button"
+                                                data-pd="address">{{ page.change_address }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if not profile.is_moderator %}
+        <a href="#GetReferralLinkModal" data-toggle="modal" data-target="#GetReferralLinkModal" class="get-referral-link btn default"><span>{{ page.get_promocode }}</span><i class="fas fa-badge-percent ml-2"></i></a>
+    {% endif %}
+
+{% endblock %}
+
+
+
+{% block modals %}
+    {% if not profile.is_moderator %}
+        <div style="position: fixed; z-index: 100000; bottom: 10px; right: 10px;">
+            <div id="success-toast" class="toast fade hide" role="alert" aria-live="assertive" aria-atomic="true"
+                 data-autohide="true" data-delay="5000">
+                <div class="toast-header">
+                    <i class="fas fa-check-circle text-success mx-2"></i>
+                    <strong class="mx-auto">{{ page.changes_saved }}</strong>
+                </div>
+                <div class="toast-body">
+                    {{ page.changes_saved_info }}
+                </div>
+            </div>
+        </div>
+        <div style="position: fixed; z-index: 100000; bottom: 10px; right: 10px;">
+            <div id="copy-toast" class="toast fade hide" role="alert" aria-live="assertive" aria-atomic="true"
+                 data-autohide="true" data-delay="5000">
+                <div class="toast-header">
+                    <i class="fas fa-check-circle text-success mx-2"></i>
+                    <strong class="mx-auto">{{ page.referral_link_copy_success }}</strong>
+                </div>
+                <div class="toast-body">
+                    {{ page.referral_link_copy_success_info }}
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="ChangePasswordModal" tabindex="-1" role="dialog"
+             aria-labelledby="{{ page.change_password }}" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="ChangePasswordCenterTitle">{{ page.change_password }}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form method="post" action="" id="change-password-form">
+                        <div class="modal-body">
+                            {% csrf_token %}
+                            <div class="form-group my-3">
+                                <input class="form-control default" placeholder="{{ page.old_password }}"
+                                       type="password"
+                                       name="old_password" required/>
+                            </div>
+                            <div class="form-group my-3">
+                                <input class="form-control default" placeholder="{{ page.new_password }}"
+                                       type="password"
+                                       name="new_password1" required/>
+                            </div>
+                            <div class="form-group my-3">
+                                <input class="form-control default" placeholder="{{ page.new_password_repeat }}"
+                                       type="password"
+                                       name="new_password2" required/>
+                            </div>
+                        </div>
+                        <div class="modal-footer text-right">
+                            <button class="btn default save_btn" type="submit">{{ page.save_btn }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="ChangeEmailModal" tabindex="-1" role="dialog"
+             aria-labelledby="{{ page.change_email }}"
+             aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="ChangeEmailCenterTitle">{{ page.change_email }}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form method="post" action="" id="changeemail-form">
+                        <div class="modal-body">
+                            {% csrf_token %}
+                            <input type="hidden" name="username">
+                            <span class="d-none step">1</span>
+                            <div class="step-sector step-1">
+                                <label class="text-left form-group w-100 my-2">
+                                    <input class="form-control default" placeholder="{{ wt.password }}" type="password"
+                                           name="password"/>
+                                </label>
+                                <label class="text-left form-group w-100 my-2">
+                                    <input class="form-control default" placeholder="{{ page.new_email }}" type="email"
+                                           name="new_email"/>
+                                </label>
+                            </div>
+                            <div class="step-sector step-2" style="display: none">
+                                <div class="alert alert-info font-weight-bold text-center mb-0">{{ wt.key_info }}</div>
+                                <input name="key" class="w-100 form-control default" maxlength="6"
+                                       placeholder="{{ wt.code }}"
+                                       value="">
+                                <div class="my-3 text-center">
+                                    <a class="code-resend disabled mb-2" href="#"
+                                       disabled>{{ wt.resend_key }}</a>
+                                    <div class="m-auto border border-dark rounded-circle text-center timer"
+                                         style="height: 25px; width: 25px"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer text-right">
+                            <button class="btn default" type="button"
+                                    id="changeemail_btn">{{ wt.next }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="ChangePersonalDataModal" tabindex="-1" role="dialog"
+             aria-labelledby="{{ page.change_personal_data }}" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="ChangePersonalDataCenterTitle">{{ page.change_personal_data }}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form method="post" action="" id="change-personal-data-form">
+                        <div class="modal-body">
+                            {% csrf_token %}
+                            <input type="hidden" name="type">
+                            <div class="step-sector step-1">
+                                <label class="text-left form-group w-100 my-2">
+                                    <input class="form-control default" placeholder="{{ wt.password }}" type="password"
+                                           name="password"/>
+                                </label>
+                                <label class="text-left form-group w-100 my-2">
+                                    <input class="form-control default pd-input" placeholder="" type="text"
+                                           name="new"/>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="modal-footer text-right">
+                            <button class="btn default" type="button"
+                                    id="save_btn">{{ wt.next }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="ChangePersonalDataSuccessModal" tabindex="-1" role="dialog"
+             aria-labelledby="{{ page.change_personal_data_success }}" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="ChangePersonalDataSuccessCenterTitle">{{ page.change_personal_data_success }}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body mb-5">
+                        <div class="alert alert-success">
+                            <strong>{{ wt.success }}</strong><br>{{ page.change_personal_data_info }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="OrderFreezeModal" tabindex="-1" role="dialog"
+             aria-labelledby="{{ page.freeze }}" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="OrderFreezeCenterTitle">{{ page.freeze }}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body mb-5">
+                        <div class="alert alert-success">
+                            <strong>{{ wt.success }}</strong><br>{{ page.order_freeze_info }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="GetReferralLinkModal" tabindex="-1" role="dialog"
+             aria-labelledby="{{ page.get_promocode }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="GetReferralLinkCenterTitle">{{ page.get_promocode }}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body pb-3">
+                        <h6 class="mb-3">{{ page.get_promocode_info }}</h6>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control default referral-link" disabled="disabled" value="https://{{ fixed.base }}/he/#pid-{{ profile.id }}">
+                            <div class="input-group-append btn-group">
+                                <button onclick="copyToClipboard('https://{{ fixed.base }}/he/#pid-{{ profile.id }}')" class="btn default copy-referral-link">{{ page.copy_referral_link }}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="modal fade" id="OrderCreateSuccessModal" tabindex="-1" role="dialog"
+             aria-labelledby="Заказ создан" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="OrderCreateSuccessCenterTitle">Заказ создан</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-success mb-4"><strong>Заказ успешно создан!</strong><br>Номер заказа:
+                            <strong class="order-id"></strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <div class="modal fade" id="OrderExtendModal" tabindex="-1" role="dialog"
+             aria-labelledby="{{ page.extend_order }}" aria-hidden="true">
+            <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title font-weight-bold"
+                            id="OrderExtendCenterTitle">{{ page.extend_order }}</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    <div class="modal fade" id="OrderShowDishesModal" tabindex="-1" role="dialog"
+     aria-labelledby="{{ page.show_dishes }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title font-weight-bold"
+                    id="OrderShowDishesCenterTitle">{{ page.show_dishes }}</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="modal fade" id="ChangeDishModal" tabindex="-1" role="dialog" aria-labelledby="{{ home_page.select_dish }}"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+			<div class="pr-3"><button type="button" class="btn default" id="back-to-dishlist" aria-label="Back">&lt;</button></div>
+                    <h4 class="modal-title font-weight-bold" id="ChangeDishModalCenterTitle">{{ home_page.select }} <span
+                            class="daytime font-weight-bold"></span>, <span class="day font-weight-bold"></span></h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <div aria-hidden="true">&times;</div>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="OrderChangeMenuModal" tabindex="-1" role="dialog"
+         aria-labelledby="{{ page.change_menu }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title font-weight-bold"
+                        id="OrderChangeMenuCenterTitle">{{ page.change_menu }}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body pb-3">
+                    <div class="row menus-container">
+
+                    </div>
+                    <h5 class="h5 font-weight-bold text-center mt-5">{{ page.meal_days }}</h5>
+                    <div class="mx-auto d-table">
+                        <div class="custom-control custom-radio change-menu-radio change-menu-radio-days custom-control-inline mx-1">
+                          <input type="radio" id="change-menu-radio-days-input-1" value="1" name="change-menu-radio-days-input" class="custom-control-input">
+                          <label class="custom-control-label h5 p-3" for="change-menu-radio-days-input-1">1</label>
+                        </div>
+                        <div class="custom-control custom-radio change-menu-radio change-menu-radio-days custom-control-inline mx-1">
+                          <input type="radio" id="change-menu-radio-days-input-2" value="2" name="change-menu-radio-days-input" class="custom-control-input">
+                          <label class="custom-control-label h5 p-3" for="change-menu-radio-days-input-2">2</label>
+                        </div>
+                        <div class="custom-control custom-radio change-menu-radio change-menu-radio-days custom-control-inline mx-1">
+                          <input type="radio" id="change-menu-radio-days-input-4" value="4" name="change-menu-radio-days-input" class="custom-control-input">
+                          <label class="custom-control-label h5 p-3" for="change-menu-radio-days-input-4">4</label>
+                        </div>
+                        <div class="custom-control custom-radio change-menu-radio change-menu-radio-days custom-control-inline mx-1">
+                          <input type="radio" id="change-menu-radio-days-input-6" value="6" name="change-menu-radio-days-input" class="custom-control-input">
+                          <label class="custom-control-label h5 p-3" for="change-menu-radio-days-input-6">6</label>
+                        </div>
+                        <div class="custom-control custom-radio change-menu-radio change-menu-radio-days custom-control-inline mx-1">
+                          <input type="radio" id="change-menu-radio-days-input-14" value="14" name="change-menu-radio-days-input" class="custom-control-input">
+                          <label class="custom-control-label h5 p-3" for="change-menu-radio-days-input-14">14</label>
+                        </div>
+			<div class="custom-control custom-radio change-menu-radio change-menu-radio-days custom-control-inline mx-1">
+                          <input type="radio" id="change-menu-radio-days-input-26" value="26" name="change-menu-radio-days-input" class="custom-control-input">
+                          <label class="custom-control-label h5 p-3" for="change-menu-radio-days-input-26">26</label>
+                        </div>
+                    </div>
+                    <div class="text-center price-change mt-4">
+                        <h4 class="price-change-name d-inline-block h4 font-weight-bold"></h4>
+                        <h4 class="price-change-count d-inline-block h4 font-weight-bold"></h4>
+                        <h4 class="d-inline-block h4 font-weight-bold"> ₪</h4>
+                    </div>
+                    <a href="#" class="btn d-table mx-auto default change-menu-submit mt-2">{{ page.save_btn }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+
+{% block scripts %}
+
+    <script src="{% static 'js/flatpickr-4.6.6/flatpickr.min.js' %}"></script>
+    <script src="{% static 'js/flatpickr-4.6.6/ru.js' %}"></script>
+    <script src="{% static 'js/flatpickr-4.6.6/he.js' %}"></script>
+
+    <script>
+
+        var menu_types = {
+            {% for menu_type in menu_types %}
+                {{ menu_type.id }}: {
+                    image: {
+                        url: '{{ menu_type.image.url }}',
+                        webp_url: '{{ menu_type.image_webp.url }}',
+                    },
+                },
+            {% endfor %}
+        }
+
+        var menus = {
+            {% for menu in menus %}
+                {{ menu.id }}: {
+                    parent_id: {{ menu.type.id }},
+                    id: {{ menu.id }},
+                    name: '{{ menu.name }}',
+                    calories: {{ menu.calories }},
+                    description: '{{ menu.description }}'
+                },
+            {% endfor %}
+        }
+
+
+        {% if profile.is_moderator %}
+
+            $('.fix-dishes').on('click', function (e) {
+                e.preventDefault();
+                var form = $('#fix-dishes-form');
+                var btn = $(this);
+                if (!btn.hasClass('disabled')) {
+                    btn.addClass('disabled').attr('disabled', true);
+                    $.ajax({
+                        url: "fix-dishes/",
+                        type: "post",
+                        data: form.serialize()
+                    }).done(function (data) {
+                        if (data['success']) {
+                            $('#success-toast').toast('show');
+                        }
+                        btn.removeClass('disabled').attr('disabled', false);
+                    });
+                }
+            });
+
+            $('.change-request-delete').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.change-request-form');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "change-request-delete/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.closest('.change-request').fadeOut(200, function () {
+                            $(this).remove();
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+
+            $('.change-request-exec').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.change-request-form');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "change-request-exec/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.closest('.change-request').fadeOut(200, function () {
+                            $(this).remove();
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+
+            $('.order-complete-delete').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.order-complete-form');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "order-complete-delete/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.fadeOut(200, function () {
+                            $(this).remove();
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+
+            $('.order-complete-submit').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.order-complete-form');
+                form.find('.invalid-feedback').remove();
+                form.find('input').removeClass('is-valid is-invalid');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "order-complete-submit/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.fadeOut(200, function () {
+                            $(this).remove();
+                            $('#OrderCreateSuccessModal .order-id').text(data['order_id']);
+                            $('#OrderCreateSuccessModal').modal('show');
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    } else {
+                        form.find('.invalid-feedback').remove();
+                        form.find('input').removeClass('is-valid is-invalid');
+                        $.each(data, function (key, data) {
+                            $.each(data, function (index, err) {
+                                let inp = form.find('input[name="' + key + '"]');
+                                inp.addClass('is-invalid');
+                                inp.parent().append('<div class="invalid-feedback">' + err + '</div>');
+                            });
+                        });
+                        form.find('input:not(.is-invalid)').addClass('is-valid');
+                        form.find('input.is-invalid').first().focus();
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+
+            $('.flatpickr-reports').flatpickr({
+                locale: "{{ LANGUAGE_CODE }}",
+                dateFormat: "d.m.Y",
+                mode: "range",
+                onValueUpdate: function (selectedDates, dateStr, instance) {
+                    if ($('.flatpickr-reports').val().length) {
+                        $('.download-reports').removeClass('disabled').attr('disabled', false);
+                    } else {
+                        $('.download-reports').addClass('disabled').attr('disabled', true);
+                    }
+                }
+            });
+
+            $('.flatpickr-reports-dishes').flatpickr({
+                locale: "{{ LANGUAGE_CODE }}",
+                dateFormat: "d.m.Y",
+                mode: "range",
+                onValueUpdate: function (selectedDates, dateStr, instance) {
+                    if ($('.flatpickr-reports-dishes').val().length) {
+                        $('.download-reports-dishes').removeClass('disabled').attr('disabled', false);
+                    } else {
+                        $('.download-reports-dishes').addClass('disabled').attr('disabled', true);
+                    }
+                }
+            });
+
+            $('.flatpickr-reports-delivery').flatpickr({
+                locale: "{{ LANGUAGE_CODE }}",
+                dateFormat: "d.m.Y",
+                mode: "range",
+                onValueUpdate: function (selectedDates, dateStr, instance) {
+                    if ($('.flatpickr-reports-delivery').val().length) {
+                        $('.download-reports-delivery').removeClass('disabled').attr('disabled', false);
+                    } else {
+                        $('.download-reports-delivery').addClass('disabled').attr('disabled', true);
+                    }
+                }
+            });
+
+            $('.flatpickr-reports-orders').flatpickr({
+                locale: "{{ LANGUAGE_CODE }}",
+                dateFormat: "d.m.Y",
+                mode: "single",
+                onValueUpdate: function (selectedDates, dateStr, instance) {
+                    if ($('.flatpickr-reports-orders').val().length) {
+                        $('.download-reports-orders').removeClass('disabled').attr('disabled', false);
+                    } else {
+                        $('.download-reports-orders').addClass('disabled').attr('disabled', true);
+                    }
+                }
+            });
+
+            $('html, body').on('click', '.make-order-payed', function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                var order_el = btn.closest('.order');
+                if (!btn.hasClass('disabled')) {
+                    btn.addClass('disabled').attr('disabled', true);
+                    $.ajax({
+                        url: "make-order-payed/",
+                        type: "post",
+                        data: $.param({
+                            'csrfmiddlewaretoken': '{{ csrf_token }}',
+                            'order_id': order_el.data('id')
+                        })
+                    }).done(function (data) {
+                        if (data['success']) {
+                            order_el.fadeOut(200, function () {
+                                var order = data['order'];
+                                var order_last_date_str = order.last_date.split('.');
+                                var order_last_date = new Date(parseInt(order_last_date_str[2]), parseInt(order_last_date_str[1])-1, parseInt(order_last_date_str[0]));
+                                var order_first_date_str = order.first_date.split('.');
+                                var order_first_date = new Date(parseInt(order_first_date_str[2]), parseInt(order_first_date_str[1])-1, parseInt(order_first_date_str[0]));
+                                var today = data['today'].split('.');
+                                var today_date = new Date(parseInt(today[2]), parseInt(today[1])-1, parseInt(today[0]));
+                                var order_block = '';
+                                if (order_last_date >= today_date && order_first_date <= today_date) {
+                                    order_block += '<li class="list-group-item">';
+                                    order_block += `<h5 class="h5 mb-0" style="color: var(--color_default_darken)"><i class="fas fa-toggle-on"></i>Активно</h5>`;
+                                    order_block += '</li>';
+                                    order_block += '<li class="list-group-item">';
+                                    order_block += '<div class="d-flex align-items-center justify-content-between">';
+                                    order_block += '<div class="freeze-dropdown default" data-maxdate="' + order.last_date + '">';
+                                    order_block += `<button class="btn btn-sm default freeze">Заморозить</button>`;
+                                    if (order.frozen_from) {
+                                        order_block += `<h5 class="h5 mt-2 d-flex align-items-center will-be-frozen"><i class="fas fa-snowflake"></i>Будет заморожено: ` + order.frozen_from + '</h5>';
+                                        order_block += '<div class="unfreeze-dropdown default">';
+                                        order_block += `<button class="btn btn-sm default unfreeze">Разморозить</button>`;
+                                        order_block += '</div>';
+                                    }
+                                    order_block += '</div>';
+                                    order_block += '</div>';
+                                    order_block += '</li>';
+                                } else {
+                                    order_block += '<li class="list-group-item d-flex align-items-center justify-content-between">';
+                                    order_block += `<h5 class="h5 mb-0" style="color: var(--color_red_darken)"><i class="fas fa-toggle-off"></i>Завершено</h5>`;
+                                    order_block += '</li>';
+                                }
+                                btn.closest('li').prev('li').remove();
+                                btn.closest('li').before(order_block);
+                                if (btn.closest('li').prev('li').find('.freeze-dropdown')) {
+                                    var freeze_dropdown = btn.closest('li').prev('li').find('.freeze-dropdown');
+                                    generate_freeze_dropdown(freeze_dropdown, order.last_date);
+                                }
+                                btn.closest('li').remove();
+                                order_el.removeClass('not-payed').addClass('active');
+                                var tool = $('.tool.selected');
+                                $('.tool').addClass('disabled').attr('disabled', true);
+                                $.each(['active', 'finished', 'frozen', 'not-payed', 'all'], function (i, class_name) {
+                                    if (Array.from(tool[0].classList).indexOf(class_name) !== -1) {
+                                        if ($('.order.' + class_name).length) {
+                                            $('.order:not(.' + class_name + ')').fadeOut(200);
+                                            $('.order.' + class_name).fadeIn(200, function () {
+                                                tool.addClass('selected');
+                                                $('.tool').removeClass('disabled').attr('disabled', false);
+                                            });
+                                        } else {
+                                            $('.order').fadeOut(200, function () {
+                                                $('.tool').removeClass('disabled').attr('disabled', false);
+                                            });
+                                        }
+                                    }
+                                });
+                            });
+                        } else {
+                            btn.removeClass('disabled').attr('disabled', false);
+                        }
+                    });
+                }
+            });
+
+            $('.make-order-to-return-payed').on('click', function (e) {
+                e.preventDefault();
+                var btn = $(this);
+                var order = btn.closest('.order');
+                if (!btn.hasClass('disabled')) {
+                    btn.addClass('disabled').attr('disabled', true);
+                    $.ajax({
+                        url: "make-order-to-return-payed/",
+                        type: "post",
+                        data: $.param({
+                            'csrfmiddlewaretoken': '{{ csrf_token }}',
+                            'order_id': order.data('id')
+                        })
+                    }).done(function (data) {
+                        if (data['success']) {
+                            btn.closest('div').fadeOut(200, function() {
+                                $(this).remove();
+                                $('#success-toast').toast('show');
+                            });
+                        } else {
+                            btn.removeClass('disabled').attr('disabled', false);
+                        }
+                    });
+                }
+            });
+
+            var today = '{{ today|date:"d.m.Y" }}'.split('.');
+            var first_date_min = new Date(parseInt(today[2]), parseInt(today[1])-1, parseInt(today[0]));
+            first_date_min.setDate(first_date_min.getDate() + parseInt('{{ first_date }}'));
+            $('.flatpickr-first-date').flatpickr({
+                locale: "{{ LANGUAGE_CODE }}",
+                dateFormat: "d.m.Y",
+                minDate: first_date_min,
+            });
+
+            function calculate_price(form_el) {
+                var form = $(form_el);
+                $.ajax({
+                    url: "call-request-load-price/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        $(form).find('.price').text(data['price']);
+                    }
+                });
+            }
+
+            $('.call-request-form select[name="menu"]').on('change', function () {
+                calculate_price($(this).closest('form'));
+            });
+            $('.call-request-form input[name="first_date"]').on('change', function () {
+                calculate_price($(this).closest('form'));
+            });
+            $('.call-request-form select[name="days"]').on('change', function () {
+                calculate_price($(this).closest('form'));
+            });
+
+            $('.call-request-delete').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.call-request-form');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "call-request-delete/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.fadeOut(200, function () {
+                            $(this).remove();
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+
+            $('.call-request-submit').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.call-request-form');
+                form.find('.invalid-feedback').remove();
+                form.find('input').removeClass('is-valid is-invalid');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "call-request-submit/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.fadeOut(200, function () {
+                            $('#OrderCreateSuccessModal .order-id').text(data['id']);
+                            $('#OrderCreateSuccessModal').modal('show');
+                            $(this).remove();
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    } else {
+                        form.find('.invalid-feedback').remove();
+                        form.find('input').removeClass('is-valid is-invalid');
+                        $.each(data, function (key, data) {
+                            $.each(data, function (index, err) {
+                                let inp = form.find('input[name="' + key + '"]');
+                                inp.addClass('is-invalid');
+                                inp.parent().append('<div class="invalid-feedback">' + err + '</div>');
+                            });
+                        });
+                        form.find('input:not(.is-invalid)').addClass('is-valid');
+                        form.find('input.is-invalid').first().focus();
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+
+            $('.review-request-delete').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.review-request-form');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "review-request-delete/",
+                    type: "post",
+                    data: form.serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.fadeOut(200, function () {
+                            $(this).remove();
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+
+            $('.review-request-submit').on('click', function (e) {
+                e.preventDefault();
+                var form = $(this).closest('.review-request-form');
+                form.find('.invalid-feedback').remove();
+                form.find('input').removeClass('is-valid is-invalid');
+                var btn = $(this);
+                var tab = btn.closest('.tab-pane');
+                var form_data = new FormData($(form)[0]);
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: "review-request-submit/",
+                    type: "post",
+                    data: form_data,
+                    contentType: false,
+                    processData: false
+                }).done(function (data) {
+                    if (data['success']) {
+                        form.fadeOut(200, function () {
+                            if (!tab.find('.row').children().length) {
+                                tab.append('<div class="text-center nothing-to-moderate" style="display: none"><h5 class="h5 mb-3">Нет задач на модерацию</h5><a href="" class="btn btn-sm default">Обновить</a></div>');
+                                tab.closest('.tab-pane').children('.nothing-to-moderate').fadeIn(200);
+                            }
+                        });
+                    } else {
+                        form.find('.invalid-feedback').remove();
+                        form.find('input').removeClass('is-valid is-invalid');
+                        $.each(data, function (key, data) {
+                            $.each(data, function (index, err) {
+                                let inp = form.find('input[name="' + key + '"]');
+                                inp.addClass('is-invalid');
+                                inp.parent().append('<div class="invalid-feedback">' + err + '</div>');
+                            });
+                        });
+                        form.find('input:not(.is-invalid)').addClass('is-valid');
+                        form.find('input.is-invalid').first().focus();
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            });
+            
+            $('html, body').on('click', '.delete-freeze', function(e) {
+                var order = $(this).closest('.order');
+                $.ajax({
+                    url: 'order-delete-freeze/',
+                    type: 'post',
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        order_id: order.data('id')
+                    }
+                }).done(function(data) {
+                    if (data.success) {
+                        order.find('.unfreeze-dropdown').remove();
+                        order.find('.will-be-frozen').remove();
+                        order.find('.will-be-unfrozen').remove();
+                        order.find('.delete-freeze').remove();
+                    }
+                });
+            });
+    
+        {% else %}
+
+            $('#ChangePasswordModal .save_btn').on('click', function () {
+                $('#ChangePasswordModal').submit();
+            });
+
+            $('#ChangePasswordModal').on('submit', function (e) {
+                e.preventDefault();
+                $('#ChangePasswordModal .save_btn');
+                $.ajax({
+                    url: "change-password/",
+                    type: "post",
+                    data: $('#change-password-form').serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        $('#ChangePasswordModal').modal('hide');
+                        $('#change-password-form input').removeClass('is-valid is-invalid').val('')
+                        $('#change-password-form input').each(function (i, ele) {
+                            var el = $(ele);
+                            if (el.attr('type') !== 'hidden') {
+                                el.val('');
+                                el.removeClass('valid-feedback invalid-feedback');
+                            }
+                        });
+                        $('#success-toast').toast('show');
+                    } else {
+                        $('#change-password-form .invalid-feedback').remove();
+                        $('#change-password-form input').removeClass('is-valid is-invalid');
+                        $.each(data, function (key, data) {
+                            $.each(data, function (index, err) {
+                                let inp = $('#change-password-form input[name="' + key + '"]');
+                                inp.addClass('is-invalid');
+                                inp.parent().append('<div class="invalid-feedback">' + err + '</div>');
+                            });
+                        });
+                        $('#change-password-form input:not(.is-invalid)').addClass('is-valid');
+                        $('#change-password-form input.is-invalid').first().focus();
+                        $('#ChangePasswordModal').effect('shake');
+                    }
+                    $('#ChangePasswordModal .save_btn');
+                });
+            });
+
+            function two_steps_form(form_name, tr_change_btn) {
+                var fnl = form_name.toLowerCase();
+
+                function form_success_false(data) {
+                    $('#' + fnl + '-form .invalid-feedback').remove();
+                    $('#' + fnl + '-form input').removeClass('is-valid is-invalid');
+                    $.each(data, function (key, data) {
+                        $.each(data, function (index, err) {
+                            let inp = $('#' + fnl + '-form input[name="' + key + '"]');
+                            inp.addClass('is-invalid');
+                            inp.parent().append('<div class="invalid-feedback">' + err + '</div>');
+                        });
+                    });
+                    $('#' + fnl + '-form input:not(.is-invalid)').addClass('is-valid');
+                    $('#' + fnl + '-form input.is-invalid').first().focus();
+                    $('#' + form_name + 'Modal').effect('shake');
+                }
+
+                function form_success_true(step) {
+                    var next_step = parseInt(step) + 1;
+                    $('#' + fnl + '-form').fadeOut(200, function () {
+                        $('#' + fnl + '-form .step-' + step).remove();
+                        $('#' + fnl + '-form .step-' + next_step).css('display', 'block');
+                        $('#' + fnl + '-form input').removeClass('is-valid is-invalid');
+                        $('#' + fnl + '-form').fadeIn(200);
+                        $('#' + fnl + '-form .step').text(next_step);
+                        $('#' + fnl + '-form input').first().focus();
+                    });
+                }
+
+                function generateTimer() {
+                    const time = $('#' + fnl + '-form .timer');
+                    time.fadeIn(200);
+                    time.text('60');
+                    timerDecrement();
+
+                    function timerDecrement() {
+                        setTimeout(function () {
+                            const newTime = time.text() - 1;
+                            time.text(newTime);
+                            if (newTime > 0) {
+                                timerDecrement();
+                            } else {
+                                time.fadeOut(200);
+                                $('#' + fnl + '-form .code-resend').removeClass('disabled').attr('disabled', false);
+                            }
+                        }, 1000);
+                    }
+                }
+
+                $('.code-resend').on('click', function (e) {
+                    e.preventDefault();
+                    if (!$(this).hasClass('disabled')) {
+                        if (parseInt($('#' + fnl + '-form .timer').text()) <= 0) {
+                            $(this).addClass('disabled').attr('disabled', true);
+                            $('#' + fnl + '-form .step-2 .alert-danger').fadeOut(200, function () {
+                                $(this).remove();
+                            });
+                            $.ajax({
+                                url: '/' + fnl + '/step-1/',
+                                type: "post",
+                                data: $('#' + fnl + '-form').serialize()
+                            }).done(function (data) {
+                                if (data['success']) {
+                                    $('#' + fnl + '-form input[name="key"]').before('<div class="alert alert-success my-2" style="display: none">{{ wt.key_resented }}</div>');
+                                    $('#' + fnl + '-form .step-2 .alert').fadeIn(200);
+                                    generateTimer();
+                                }
+                            });
+                        }
+                    }
+                });
+
+                $('#' + fnl + '-form').on('submit', function (event) {
+                    let step = parseInt($(this).find('.step').text());
+                    event.preventDefault();
+                    var btn = $('#' + fnl + '-form #' + fnl + '_btn');
+                    if (!btn.hasClass('disabled')) {
+                        btn.addClass('disabled').attr('disabled', true);
+                        $.ajax({
+                            url: fnl + '/step-' + step + '/',
+                            type: "post",
+                            data: $('#' + fnl + '-form').serialize()
+                        }).done(function (data) {
+                            if (step === 1) {
+                                if (data['success']) {
+                                    $('#' + fnl + '-form input[name="username"]').val(data['username']);
+                                    generateTimer();
+                                    form_success_true(step);
+                                } else form_success_false(data);
+                            } else if (step === 2) {
+                                $('#' + fnl + '-form .step-2 .alert-danger').fadeOut(200, function () {
+                                    $(this).remove();
+                                });
+                                if (data['success']) {
+                                    $('#' + form_name + 'Modal input').each(function (i, ele) {
+                                        var el = $(ele);
+                                        if (el.attr('type') !== 'hidden') {
+                                            el.val('');
+                                            el.removeClass('valid-feedback invalid-feedback');
+                                        }
+                                    });
+                                    var field = $('#' + form_name + '-current');
+                                    if (field.length) {
+                                        field.val(data['new']);
+                                    } else {
+                                        var group = $('#' + form_name + '-group');
+                                        group.children().remove();
+                                        group.append('<input id="' + form_name + '-current" type="text" class="form-control default" disabled="disabled" value="' + data['new'] + '">');
+                                        group.append('<div class="input-group-append btn-group"><button class="btn default" type="button" data-toggle="modal" data-target="#' + form_name + 'Modal">' + tr_change_btn + '</button> </div>');
+                                    }
+                                    $('#' + form_name + 'Modal').modal('hide');
+                                    $('#success-toast').toast('show');
+                                } else {
+                                    $('#' + fnl + '-form input[name="key"]').before('<div class="alert alert-danger my-2">{{ wt.bad_key }}</div>');
+                                    $('#' + fnl + '-form input[name="key"]').val('').focus();
+                                    $('#' + form_name + 'Modal').effect('shake');
+                                }
+                            }
+                            btn.removeClass('disabled').attr('disabled', false);
+                        });
+                    }
+                });
+
+                $('#' + fnl + '-form #' + fnl + '_btn').on('click', function () {
+                    $('#' + fnl + '-form').submit()
+                });
+            }
+
+            two_steps_form('ChangeEmail', '{{ page.change_email }}');
+
+            $('.ChangePersonalDataModal').on('click', function () {
+                var form_name = $(this).data('pd');
+                var modal = $('#ChangePersonalDataModal');
+                var form = $('#change-personal-data-form');
+                var tr = {
+                    'name': '{{ wt.user_name }}',
+                    'surname': '{{ wt.user_surname }}',
+                    'phone': '{{ wt.user_phone }}',
+                    'address': '{{ wt.user_address }}',
+                };
+                var form_name_read = tr[form_name];
+                modal.find('.pd-input').attr('placeholder', form_name_read);
+                form.find('.invalid-feedback').remove();
+                form.find('input').removeClass('is-valid is-invalid');
+                form.find('input').each(function (i, ele) {
+                    var el = $(ele);
+                    if (el.attr('type') !== 'hidden') {
+                        el.val('');
+                        el.removeClass('valid-feedback invalid-feedback');
+                    }
+                });
+                form.find('input[name="type"]').val(form_name);
+                modal.modal('show');
+            });
+
+            $('#change-personal-data-form #save_btn').on('click', function () {
+                $('#change-personal-data-form').submit();
+            });
+
+            $('#change-personal-data-form').on('submit', function (e) {
+                e.preventDefault();
+                var btn = $('#change-personal-data-form #save_btn');
+                if (!btn.hasClass('disabled')) {
+                    btn.addClass('disabled').attr('disabled', true);
+                    $.ajax({
+                        url: 'change-personal-data/',
+                        type: "post",
+                        data: $('#change-personal-data-form').serialize()
+                    }).done(function (data) {
+                        if (data['success']) {
+                            $('#ChangePersonalDataModal').modal('hide');
+                            $('#ChangePersonalDataSuccessModal').modal('show');
+                        } else {
+                            $('#change-personal-data-form .invalid-feedback').remove();
+                            $('#change-personal-data-form input').removeClass('is-valid is-invalid');
+                            $.each(data, function (key, data) {
+                                $.each(data, function (index, err) {
+                                    let inp = $('#change-personal-data-form input[name="' + key + '"]');
+                                    inp.addClass('is-invalid');
+                                    inp.parent().append('<div class="invalid-feedback">' + err + '</div>');
+                                });
+                            });
+                            $('#change-personal-data-form input:not(.is-invalid)').addClass('is-valid');
+                            $('#change-personal-data-form input.is-invalid').first().focus();
+                            $('#ChangePersonalDataModal').effect('shake');
+                        }
+                        btn.removeClass('disabled').attr('disabled', false);
+                    });
+                }
+            });
+
+            var all_orders_loaded = {% if all_orders_loaded %}true{% else %}false{% endif %};
+
+            $('#orders .load-orders').on('click', function (e) {
+                var btn = $(this);
+                if (!btn.hasClass('disabled')) {
+                    btn.addClass('disabled').attr('disabled', true);
+                    $.ajax({
+                        url: 'load-orders/',
+                        type: 'post',
+                        data: {
+                            csrfmiddlewaretoken: '{{ csrf_token }}',
+                            last_order_id: $('.order').last().data('id')
+                        }
+                    }).done(function (data) {
+                        if (data['success']) {
+                            $.each(data['orders'], function (i, order) {
+                                $('#orders .row').append(generateOrderBlock(order, data['today']));
+                            });
+                            $('.order').fadeIn(200, function () {
+                                $(this).removeClass('new');
+                            });
+                            $('.tool').removeClass('selected disabled');
+                            all_orders_loaded = data['all_orders_loaded'];
+                            if (all_orders_loaded) {
+                                $('.load-orders').fadeOut(200, function () {
+                                    $(this).remove()
+                                });
+                            }
+                        }
+                        btn.removeClass('disabled').attr('disabled', false);
+                    });
+                }
+            });
+
+            $('html, body').on('click', '.pay', function (e) {
+                var btn = $(this);
+                if (!btn.hasClass('disabled')) {
+                    btn.addClass('disabled').attr('disabled', true);
+                    $.ajax({
+                        url: 'order-pay-info/',
+                        type: 'post',
+                        data: {
+                            csrfmiddlewaretoken: '{{ csrf_token }}',
+                            order_id: btn.closest('.order').data('id')
+                        }
+                    }).done(function (data) {
+                        if (data['success']) {
+                            console.log(data);
+                        }
+                        btn.removeClass('disabled').attr('disabled', false);
+                    });
+                }
+            });
+            
+            $('html, body').on('click', '.freeze', function(e) {
+                var order = $(this).closest('.order');
+                $.ajax({
+                    url: 'order-freeze/',
+                    type: 'post',
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        order_id: order.data('id')
+                    }
+                }).done(function(data) {
+                    if (data.success) {
+                        order.find('.freeze').closest('li').remove();
+                        $('#OrderFreezeModal').modal('show');
+                    }
+                });
+            });
+
+            function copyToClipboard(text) {
+                var temp = $('<input>');
+                $('body').append(temp);
+                temp.val(text).focus().select();
+                document.execCommand("copy");
+                temp.remove();
+                $('#copy-toast').toast('show');
+            }
+
+        {% endif %}
+
+        var orders = {
+            {% if profile.is_moderator %}
+                {% for order_id, order in orders.completed.items %}
+                    {{ forloop.counter }}: {
+                        'id': {{ order.id }},
+                        'is_payed': {% if order.is_payed %}true{% else %}false{% endif %},
+                        'first_date': '{{ order.first_date }}',
+                        'days': '{{ order.days }}',
+                        'last_date': '{{ order.last_date }}',
+                        'allowed_menu_change': {% if order.allowed_menu_change %} true {% else %} false {% endif %},
+                        'changed_menu': {% if order.changed_menu %} true {% else %} false {% endif %},
+                        'to_return': parseFloat('{{ order.to_return }}'),
+                        'extend_allowed': {% if order.extend_allowed %} true {% else %} false {% endif %},
+                        'menu': {
+                            'id': {{ order.menu.id }},
+                            'parent_id': {{ order.menu.parent_id }},
+                            'name': '{{ order.menu.name }}',
+                            'calories': '{{ order.menu.calories }}',
+                            'description': `{{ order.menu.description }}`,
+                        },
+                        'created': '{{ order.created }}',
+                        'name': `{{ order.name }}`,
+                        'phone': '{{ order.phone }}',
+                        'price': parseFloat('{{ order.price }}'),
+                        'email': '{{ order.email }}',
+                        'address': '{{ order.address }}',
+                        'comment': `{{ order.comment }}`,
+                        'frozen':{% if order.frozen %} true {% else %} false {% endif %},
+                        'frozen_from': {% if order.frozen_from %} '{{ order.frozen_from }}' {% else %} false {% endif %},
+                        'frozen_to': {% if order.frozen_to %} '{{ order.frozen_to }}' {% else %} false {% endif %},
+                        'close_to_finish': {% if order.close_to_finish %} true {% else %} false {% endif %},
+                        'waiting': {% if order.waiting %} true {% else %} false {% endif %},
+                        'payment_type': '{{ order.payment_type }}'
+                    },
+                {% endfor %}
+            {% else %}
+                {% for order_id, order in orders.items %}
+                    {{ forloop.counter }}: {
+                        'id': {{ order.id }},
+                        'is_payed': {% if order.is_payed %}true{% else %}false{% endif %},
+                        'first_date': '{{ order.first_date }}',
+                        'days': '{{ order.days }}',
+                        'last_date': '{{ order.last_date }}',
+                        'allowed_menu_change': {% if order.allowed_menu_change %} true {% else %} false {% endif %},
+                        'changed_menu': {% if order.changed_menu %} true {% else %} false {% endif %},
+                        'to_return': parseFloat('{{ order.to_return }}'),
+                        'extend_allowed': {% if order.extend_allowed %} true {% else %} false {% endif %},
+                        'menu': {
+                            'id': {{ order.menu.id }},
+                            'parent_id': {{ order.menu.parent_id }},
+                            'name': '{{ order.menu.name }}',
+                            'calories': '{{ order.menu.calories }}',
+                            'description': `{{ order.menu.description }}`,
+                        },
+                        'frozen':{% if order.frozen %} true {% else %} false {% endif %},
+                        'frozen_from': {% if order.frozen_from %} '{{ order.frozen_from }}' {% else %} false {% endif %},
+                        'frozen_to': {% if order.frozen_to %} '{{ order.frozen_to }}' {% else %} false {% endif %},
+                        'close_to_finish': {% if order.close_to_finish %} true {% else %} false {% endif %},
+                        'waiting': {% if order.waiting %} true {% else %} false {% endif %},
+                },
+                {% endfor %}
+            {% endif %}
+        }
+
+        function generate_freeze_dropdown(freeze_dropdown, max_date) {
+            freeze_dropdown.flatpickr({
+                locale: "{{ LANGUAGE_CODE }}",
+                dateFormat: "d.m.Y",
+                maxDate: max_date,
+                mode: "single",
+                onChange: function (selectedDates, dateStr, instance) {
+                    var date_str = dateStr;
+                    if (dateStr[0] == '0') {
+                        date_str = dateStr.slice(1);
+                    }
+                    $.ajax({
+                        url: 'order-freeze/',
+                        type: 'post',
+                        data: {
+                            csrfmiddlewaretoken: '{{ csrf_token }}',
+                            order_id: freeze_dropdown.closest('.order').data('id'),
+                            date: date_str,
+                        }
+                    }).done(function (data) {
+                         if (data['success']) {
+                            if (freeze_dropdown.closest('li').find('.unfreeze-dropdown').length) {
+                                freeze_dropdown.closest('li').find('.will-be-frozen')[0].innerHTML = `<i class="fas fa-snowflake"></i>{{ page.will_be_frozen }} ` + date_str;
+                                freeze_dropdown.closest('li').find('.unfreeze-dropdown').data('mindate', data['unfreeze_allowed_from']);
+                            } else {
+                                var unfreeze_block = '';
+                                unfreeze_block += `<h5 class="h5 mt-2 d-flex align-items-center will-be-frozen"><i class="fas fa-snowflake"></i>Будет заморожено: ` + date_str + '</h5>';
+                                unfreeze_block += '<div class="d-flex align-items-center justify-content-between">';
+                                unfreeze_block += `<div class="unfreeze-dropdown default" data-mindate="` + data['unfreeze_allowed_from'] + `">`;
+                                unfreeze_block += `<button class="btn btn-sm default unfreeze">Разморозить</button>`;
+                                unfreeze_block += '</div>';
+                                unfreeze_block += '</div>';
+                                freeze_dropdown.closest('li').append(unfreeze_block);
+                            }
+                            var unfreeze_dropdown = freeze_dropdown.closest('li').find('.unfreeze-dropdown');
+                            var min_date = unfreeze_dropdown.data('mindate');
+                            var max_date = unfreeze_dropdown.data('maxdate');
+                            generate_unfreeze_dropdown(unfreeze_dropdown, min_date);
+                        }
+                    });
+                }
+            });
+        }
+
+        function generate_unfreeze_dropdown(unfreeze_dropdown, min_date) {
+            unfreeze_dropdown.flatpickr({
+                locale: "{{ LANGUAGE_CODE }}",
+                dateFormat: "d.m.Y",
+                minDate: min_date,
+                mode: "single",
+                onChange: function (selectedDates, dateStr, instance) {
+                    var date_str = dateStr;
+                    if (dateStr[0] == '0') {
+                        date_str = dateStr.slice(1);
+                    }
+                    $.ajax({
+                        url: 'order-unfreeze/',
+                        type: 'post',
+                        data: {
+                            csrfmiddlewaretoken: '{{ csrf_token }}',
+                            order_id: unfreeze_dropdown.closest('.order').data('id'),
+                            date: date_str,
+                        }
+                    }).done(function (data) {
+                        if (data['success']) {
+                            if (unfreeze_dropdown.closest('li').find('.will-be-unfrozen').length) {
+                                unfreeze_dropdown.closest('li').find('.will-be-unfrozen')[0].innerHtml = `<i class="fas fa-snowflake"></i>{{ page.will_be_unfrozen }} ` + date_str;
+                            } else {
+                                unfreeze_dropdown.closest('li').append(`<h5 class="h5 d-flex align-items-center mt-2 will-be-unfrozen"><i class="fas fa-snowflake"></i>{{ page.will_be_unfrozen }} ` + date_str + '</h5><button class="btn btn-sm default delete-freeze">Удалить заморозку</button>');
+                            }
+                            var order_dates = unfreeze_dropdown.closest('.order').find('.order-dates').text().split(' - ');
+                            var order_dates_str = order_dates[0] + ' - ' + data['last_date'];
+                            unfreeze_dropdown.closest('.order').find('.order-dates').text(order_dates_str);
+                            unfreeze_dropdown.closest('li').find('freeze-dropdown').data('maxdate', date_str);
+                            var min_date = unfreeze_dropdown.data('mindate');
+                            generate_unfreeze_dropdown(unfreeze_dropdown, min_date);
+                        }
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            $('.flowing-scroll').each(function (i, el) {
+                $(el).attr('href', '/' + $(el).attr('href'));
+            });
+            {% if profile.is_moderator %}
+                if (Object.keys(orders).length) {
+                    var tools = '<div class="d-flex align-items-center justify-content-center my-2">';
+                    tools += '<a href="#tools-all" class="tool all selected">Все ({{ orders.completed|length }})</a>';
+                    tools += '<a href="#tools-active" class="tool active mx-2">Активные ({{ orders_active_count }})</a>';
+                    tools += '<a href="#tools-finished" class="tool finished mx-2">Завершенные ({{ orders_finished_count }})</a>';
+                    tools += '</div>';
+                    tools += '<div class="d-flex align-items-center justify-content-center my-2">';
+                    tools += '<a href="#tools-waiting" class="tool waiting mx-2">Ожидают ({{ orders_waiting_count }})</a>';
+                    tools += '<a href="#tools-close-to-finish" class="tool close-to-finish mx-2">Завершающиеся ({{ orders_close_to_finish_count }})</a>';
+                    tools += '<a href="#tools-frozen" class="tool frozen mx-2">Замороженные ({{ orders_frozen_count }})</a>';
+                    tools += '<a href="#tools-not-payed" class="tool not-payed mx-2">Неоплаченные ({{ orders_not_payed_count }})</a>';
+                    tools += '</div>';
+                    $('#orders').prepend(tools);
+                } else {
+                    var no_orders_block = '<div class="col-12 text-center">';
+                    no_orders_block += '<h5 class="h5 mb-3">Нет задач на модерацию</h5>';
+                    no_orders_block += '<a href="" class="btn btn-sm default">Обновить</a>';
+                    no_orders_block += '</div>';
+                    $('#orders').prepend(no_orders_block);
+                }
+            {% else %}
+                if (Object.keys(orders).length) {
+                    var tools = '<div class="d-flex align-items-center justify-content-center my-2">';
+                    tools += '<a href="#tools-all" class="tool all selected">{{ page.all }}</a>';
+                    tools += '<a href="#tools-active" class="tool active mx-2">{{ page.active_pl }}</a>';
+                    tools += '<a href="#tools-frozen" class="tool frozen mx-2">{{ page.frozen }}</a>';
+                    tools += '</div>';
+                    tools += '<div class="d-flex align-items-center justify-content-center my-2">';
+                    tools += '<a href="#tools-finished" class="tool finished mx-2">{{ page.completed_pl }}</a>';
+                    tools += '<a href="#tools-not-payed" class="tool not-payed mx-2">{{ page.not_payed_pl }}</a>';
+                    tools += '</div>';
+                    $('#orders').prepend(tools);
+                } else {
+                    var no_orders_block = '<div class="col-12 text-center">';
+                    no_orders_block += '<h5 class="h5 mb-3">{{ page.no_orders }}</h5>';
+                    no_orders_block += '<a href="/#menu" class="btn btn-sm default">{{ page.make_order }}</a>';
+                    no_orders_block += '</div>';
+                    $('#orders').prepend(no_orders_block);
+                }
+            {% endif %}
+            $.each(orders, function (i, order) {
+                $('#orders .row').append(generateOrderBlock(order, '{{ today|date:"d.m.Y" }}', {% if profile.is_moderator %} true {% else %} false {% endif %}))
+            });
+            $('.order.new').fadeIn(200, function () {
+                $(this).removeClass('new');
+                var freeze_dropdown = $(this).find('.freeze').closest('.freeze-dropdown');
+                var max_date = freeze_dropdown.data('maxdate');
+                generate_freeze_dropdown(freeze_dropdown, max_date);
+                var unfreeze_dropdown = $(this).find('.unfreeze-dropdown');
+                var min_date = unfreeze_dropdown.data('mindate');
+                generate_unfreeze_dropdown(unfreeze_dropdown, min_date);
+            });
+            {% if not profile.is_moderator %}
+                if (!all_orders_loaded) {
+                    $('.load-orders').css('display', 'block');
+                }
+            {% endif %}
+        });
+
+        var daytime_translate = {
+            'drink': '{{ home_page.drink }}',
+            'breakfast': '{{ home_page.breakfast }}',
+            'second-breakfast': '{{ home_page.second_breakfast }}',
+            'lunch': '{{ home_page.lunch }}',
+            'high-tea': '{{ home_page.high_tea }}',
+            'dinner': '{{ home_page.dinner }}'
+        };
+
+        var short_weekdays = [
+            '{{ home_page.monday_short }}',
+            '{{ home_page.tuesday_short }}',
+            '{{ home_page.wednesday_short }}',
+            '{{ home_page.thursday_short }}',
+            '{{ home_page.friday_short }}',
+            '{{ home_page.saturday_short }}',
+            '{{ home_page.sunday_short }}',
+        ];
+
+        function generateDishBlock(dish_data, date, circleday, daytime, dishes_all, original) {
+            var dish_block = '';
+            let today = new Date(); 
+            let thisYear = today.getFullYear(); 
+            let arrayDate = date.split('.'); 
+            let dateDish = new Date(arrayDate[1] + '/' + arrayDate[0] + '/' + thisYear); 
+            let diff = parseInt((dateDish - today) / (1000*60*60*24), 10);
+            if (original) {
+                dish_block += '<div class="dish text-left col-12 col-md-6 col-lg-4 mb-2" ';
+            } else {
+                dish_block += '<div class="dish text-center col-12 col-md-6 col-lg-4 mb-2" ';
+            }
+            dish_block += 'data-id="' + dish_data.id + '" ';
+            dish_block += 'data-date="' + date.replace('.', '-') + '" ';
+            dish_block += 'data-circleday="' + circleday + '" ';
+            dish_block += 'data-daytime="' + daytime + '">';
+            if (original) {
+                dish_block += '<img src="' + dish_data.image_webp_url + `" onerror="this.onerror=null; this.src='` + dish_data.image_url + `'" alt="` + dish_data.name + ' photo">';
+            } else {
+                dish_block += '<img class="mb-4" src="' + dish_data.image_webp_url + `" onerror="this.onerror=null; this.src='` + dish_data.image_url + `'" alt="` + dish_data.name + ' photo">';
+            }
+            if (original) {
+                var change_allowed = (dishes_all[date.replace('-', '.')][circleday][daytime].length > 1 ? true : false);
+                if (change_allowed) {
+                    dish_block += '<div class="d-flex align-items-center justify-content-between mt-4 mb-2">';
+                    dish_block += '<div class="dish-daytime">';
+                    dish_block += daytime_translate[daytime.replace('daytime-', '')];
+                    dish_block += '</div>';
+                    dish_block += '<a href="#change-dish" class="btn btn-sm default change-dish">{{ home_page.replace }}</a>';
+                    
+                    dish_block += '</div>';
+                } else {
+                    dish_block += '<div class="dish-daytime mt-4 mb-2 mx-auto">';
+                    dish_block += daytime_translate[daytime.replace('daytime-', '')];
+                    dish_block += '</div>';
+                }
+            }
+            //dish_block += '<h5>' + diff + '</h5>';
+            dish_block += '<div class="dish-name mb-2">' + dish_data.name + '</div>';
+            dish_block += '<div class="dish-description mb-2">' + dish_data.description + '</div>';
+            {% if LANGUAGE_CODE == 'he' %}
+                dish_block += '<div class="dish-info mb-2"><span dir="ltl"> {{ wt.calories_short }} </span>' + dish_data.calories + '</div>';
+            {% else %}
+                dish_block += '<div class="dish-info mb-1">' + dish_data.calories + ' {{ wt.calories_short }} </div>';
+		dish_block += '<div class="dish-info mb-1">Белки: ' + dish_data.proteins + ', Жиры: ' + dish_data.fats + ', Углеводы: ' + dish_data.carbohydrates + ' </div>';
+            {% endif %}
+            if (!original) {
+                dish_block += '<a href="#ChangeDishSubmit" class="btn btn-sm default change-dish-submit">{{ home_page.select }}</a>';
+            }
+            dish_block += '</div>';
+            return dish_block;
+        }
+
+        function generateShowDishesModal(dishes_now, dishes_all) {
+            var controls = '<ul class="nav nav-weekdays nav-pills justify-content-center mb-5 {% if LANGUAGE_CODE == 'he' %} flex-row-reverse{% endif %}" role="tablist">';
+            var tabs = '<div class="tab-content mt-4">';
+            $.each(Object.keys(dishes_now), function (i, date) {
+                controls += '<li class="nav-item d-inline-flex">';
+                controls += '<a class="nav-link d-flex align-items-center ';
+                if (i == 0) {
+                    controls += ' active';
+                }
+                controls += '" data-toggle="pill" href="#date-';
+                controls += date.replace('.', '-');
+                controls += '" role="tab"';
+                if (i == 0) {
+                    controls += ' aria-selected="true"';
+                }
+                controls += '>';
+                $.each(Object.keys(dishes_now[date]), function (j, key) {
+                    controls += short_weekdays[dishes_now[date][key].weekday];
+                });
+                controls += ' ' + date;
+                controls += '</a>';
+                controls += '</li>';
+                tabs += '<div class="tab-pane';
+                if (i == 0) {
+                    tabs += ' show active';
+                }
+                tabs += '"';
+                tabs += 'id="date-';
+                tabs += date.replace('.', '-');
+                tabs += '" role="tabpanel">';
+                tabs += '<div class="row">';
+                $.each(Object.keys(dishes_now[date]), function (j, key) {
+                    $.each(dishes_now[date][key], function (daytime, dishes) {
+                        if (daytime !== 'weekday') {
+                            $.each(dishes, function (l, dish_data) {
+                                tabs += generateDishBlock(dish_data, date, key, daytime, dishes_all, true);
+                            });
+                        }
+                    });
+                });
+                tabs += '</div>';
+                tabs += '</div>';
+            });
+            controls += '</ul>';
+            tabs += '</div>';
+            $('html, body').on('click', '.change-dish', function () {
+                var modal = $('#ChangeDishModal');
+                var dish_now = $(this).closest('.dish');
+                var date_now = dish_now.data('date');
+                var circleday_now = dish_now.data('circleday');
+                var daytime_now = dish_now.data('daytime');
+                var dish_uid_number = dish_now.closest('.modal').find('.tab-pane.active .dish[data-daytime="' + daytime_now + '"]').index(dish_now);
+                var dish_uid = dish_now.data('daytime') + '.' + dish_uid_number;
+                modal.data('uid', dish_uid);
+                var dishes_to_select = {};
+                Object.assign(dishes_to_select, dishes_all[date_now.replace('-', '.')][circleday_now][daytime_now]);
+                var id_now = dish_now.data('id');
+                modal.find('.daytime').text(daytime_translate[daytime_now.replace('daytime-', '')].toLowerCase());
+                modal.find('.day').text(dish_now.closest('.modal').find('.nav-weekdays .nav-link.active').text());
+                modal.find('.modal-body .dish').remove();
+                $.each(dishes_to_select, function (i, dish_data) {
+                    if (dish_data.id != id_now) {
+                        modal.find('.modal-body .row').append(generateDishBlock(dish_data, date_now, circleday_now, daytime_now, dishes_all, false));
+                    }
+                });
+                modal.modal('show');
+            });
+            $('html, body').on('click', '.change-dish-submit', function () {
+                var btn = $(this);
+                if (!btn.hasClass('disabled')) {
+                    var modal = $('#ChangeDishModal');
+                    modal.find('.change-dish-submit').addClass('disabled').prop('disabled', true);
+                    var dish_block_selected = $(this).closest('.dish');
+                    var date_selected = dish_block_selected.data('date');
+                    var circleday_selected = dish_block_selected.data('circleday');
+                    var daytime_selected = dish_block_selected.data('daytime');
+                    var dish_selected_id = dish_block_selected.data('id');
+                    var dish_selected_data = [];
+                    $.each(dishes_all[date_selected.replace('-', '.')][circleday_selected][daytime_selected], function (i, dish_data) {
+                        if (dish_data.id == dish_selected_id) {
+                            dish_selected_data = dish_data;
+                        }
+                    });
+                    var dish_block_new = generateDishBlock(dish_selected_data, date_selected, circleday_selected, daytime_selected, dishes_all, true);
+                    var dish_last_uid = $(this).closest('#ChangeDishModal').data('uid').split('.');
+                    var dish_last_daytime = dish_last_uid[0];
+                    var dish_last_daytime_i = parseInt(dish_last_uid[1]);
+                    var dish_last = $($('#OrderShowDishesModal').find('.tab-pane.active .dish[data-daytime="' + dish_last_daytime + '"]')[dish_last_daytime_i]);
+                    var next_dish = dish_last.next();
+                    $.ajax({
+                        url: 'order-change-dish/',
+                        type: 'post',
+                        data: {
+                            csrfmiddlewaretoken: '{{ csrf_token }}',
+                            order_id: $('#OrderShowDishesModal').data('order-id'),
+                            date: date_selected.replace('-', '.'),
+                            last_dish_id: dish_last.data('id'),
+                            new_dish_id: dish_selected_data.id,
+                        }
+                    }).done(function (data) {
+                        if (data['success']) {
+                            dish_last.remove();
+                            next_dish.before(dish_block_new);
+                            modal.modal('hide');
+                            modal.find('.change-dish-submit').removeClass('disabled').prop('disabled', false);
+                            $('#OrderShowDishesModal').modal('show');
+                            $('#success-toast').toast('show');
+                        }
+                    });
+                }
+            });
+            return [controls, tabs];
+        }
+
+        $('html, body').on('click', '.show-dishes', function (e) {
+            var btn = $(this);
+            if (!btn.hasClass('disabled')) {
+                btn.addClass('disabled').prop('disabled', true);
+                var order = $(this).closest('.order');
+                var modal = $('#OrderShowDishesModal');
+                $.ajax({
+                    url: 'order-show-dishes/',
+                    type: 'post',
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        order_id: order.data('id')
+                    }
+                }).done(function (data) {
+                    if (data['success']) {
+                        modal.find('.modal-body *').remove();
+                        modal.find('.modal-footer *').remove();
+                        var tabs_and_controls = generateShowDishesModal(data['dishes_now'], data['dishes_all']);
+                        modal.find('.modal-body').append(tabs_and_controls);
+                        modal.data('order-id', order.data('id'));
+                        modal.modal('show');
+                        btn.removeClass('disabled').prop('disabled', false);
+                    }
+                });
+            }
+        });
+
+        function generateMenuBlock(menu) {
+            var menu_block = '<div class="custom-control plan2 custom-radio change-menu-radio text-center col-12 col-lg-4 mb-2">';
+            menu_block += '<input type="radio" value="' + menu.id + '" id="change-menu-radio-input-' + menu.id + '" name="change-menu-radio-input" class="custom-control-input">';
+            menu_block += '<label class="custom-control-label p-3 w-100 h-100" for="change-menu-radio-input-' + menu.id + '">';
+            menu_block += '<h5 class="plan2-name font-weight-bold">' + menu.name + '</h5>';
+            menu_block += '<h5 class="plan2-description">' + menu.description + '</h5>';
+            menu_block += '<h5 class="plan2-calories">{{ wt.calories_short_start }} ' + menu.calories + ' {{ wt.calories_short }}</h5>';
+            menu_block += '</label>';
+            menu_block += '</div>';
+            return menu_block;
+        }
+
+        function changeMenuRadioPriceUpdate(order_id, menu_id, days) {
+            $('#OrderChangeMenuModal .change-menu-radio input').addClass('disabled').prop('disabled', true);
+            $('#OrderChangeMenuModal .change-menu-radio-days input').addClass('disabled').prop('disabled', true);
+            $('#OrderChangeMenuModal .price-change').css({opacity: 0});
+            $('#OrderChangeMenuModal .change-menu-submit').addClass('disabled').prop('disabled', true);
+            $.ajax({
+                url: 'order-change-menu-calculate/',
+                type: 'post',
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    order_id: order_id,
+                    menu_id: menu_id,
+                    days: days,
+                }
+            }).done(function (data) {
+                if (data['success']) {
+                    $('#OrderChangeMenuModal .change-menu-radio-days').removeClass('d-none');
+                    $.each(data['days_not_allowed'], function(i, days_count) {
+                        $('#OrderChangeMenuModal #change-menu-radio-days-input-' + days_count).closest('.change-menu-radio-days').addClass('d-none');
+                    });
+                    if (data['allowed']) {
+                        console.log(data['price_change']);
+                        if (data['price_change'] > 0) {
+                            {% if profile.is_moderator %}
+                                $('#OrderChangeMenuModal .price-change-name').text('Необходимо вернуть:');
+                            {% else %}
+                                $('#OrderChangeMenuModal .price-change-name').text('{{ page.we_will_return }}');
+                            {% endif %}
+                            $('#OrderChangeMenuModal .price-change-count').text(data['price_change'].replace(',', '.'));
+                            $('#OrderChangeMenuModal .price-change').css({opacity: 1});
+                        } else if (data['price_change'] < 0) {
+                            {% if profile.is_moderator %}
+                                $('#OrderChangeMenuModal .price-change-name').text('Необходимо доплатить:');
+                            {% else %}
+                                $('#OrderChangeMenuModal .price-change-name').text('{{ page.you_need_to_pay }}');
+                            {% endif %}
+                            $('#OrderChangeMenuModal .price-change-count').text(data['price_change'].replace(',', '.').replace('-', ''));
+                            $('#OrderChangeMenuModal .price-change').css({opacity: 1});
+                        }
+                        $('#OrderChangeMenuModal .change-menu-submit').removeClass('disabled').prop('disabled', false);
+                    }
+                }
+                $('.change-menu-radio input').removeClass('disabled').prop('disabled', false);
+            });
+        }
+
+        $('html, body').on('click', '.change-menu', function (e) {
+            var order = $(this).closest('.order');
+            var modal = $('#OrderChangeMenuModal');
+            var menus_container = modal.find('.menus-container');
+            menus_container.find('*').remove();
+            var order_id = order.data('id');
+            var menu_type_id = order.data('menuparent');
+            modal.data('id', order_id);
+            var allowed_menus = [];
+            $.each(Object.keys(menus), function (i, menu_id) {
+                var menu = menus[menu_id];
+                if (menu.parent_id == menu_type_id) {
+                    allowed_menus.push(menu);
+                }
+            });
+            allowed_menus.sort(function(a , b) {
+                return a.calories - b.calories
+            });
+            console.log(allowed_menus);
+            var menus_block = '';
+            $.each(allowed_menus, function(i, menu) {
+                menus_block += generateMenuBlock(menu);
+            });
+            menus_container.append(menus_block);
+            modal.find('#change-menu-radio-input-' + order.data('menu')).prop('checked', true);
+            modal.find('#change-menu-radio-days-input-' + order.data('days')).prop('checked', true).change();
+            $('.change-menu-radio input').off();
+            $('.change-menu-radio input').on('change', function() {
+                var modal = $('#OrderChangeMenuModal');
+                changeMenuRadioPriceUpdate(modal.data('id'), modal.find('.change-menu-radio input:checked').val(), modal.find('.change-menu-radio-days input:checked').val());
+            });
+
+            modal.modal('show');
+        });
+
+        $('.change-menu-radio-days input').on('change', function() {
+            var modal = $('#OrderChangeMenuModal');
+            changeMenuRadioPriceUpdate(modal.data('id'), modal.find('.change-menu-radio input:checked').val(), modal.find('.change-menu-radio-days input:checked').val());
+        });
+
+        $('.change-menu-submit').on('click', function() {
+            var btn = $(this);
+            if (!btn.hasClass('disabled')) {
+                btn.addClass('disabled').prop('disabled', true);
+                $('#OrderChangeMenuModal .change-menu-radio').addClass('disabled').prop('disabled', true);
+                $('#OrderChangeMenuModal .change-menu-radio-days').addClass('disabled').prop('disabled', true);
+                var modal = $('#OrderChangeMenuModal');
+                $.ajax({
+                    url: 'order-change-menu-submit/',
+                    type: 'post',
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        order_id: modal.data('id'),
+                        menu_id: modal.find('.change-menu-radio input:checked').val(),
+                        days: modal.find('.change-menu-radio-days input:checked').val(),
+                    }
+                }).done(function (data) {
+                    if (data['success']) {
+                        modal.modal('hide');
+                        $('#success-toast').toast('show');
+                        window.location.reload();
+                    }
+                });
+            }
+        });
+
+        $('html, body').on('click', '.tool', function (e) {
+            var tool = $(this);
+            if (!tool.hasClass('disabled')) {
+                $('.tool').addClass('disabled').attr('disabled', true);
+                $('.tool.selected').removeClass('selected');
+                $.each(['active', 'finished', 'close-to-finish', 'waiting', 'not-payed', 'frozen', 'all'], function (i, class_name) {
+                    if (Array.from(tool[0].classList).indexOf(class_name) !== -1) {
+                        if ($('.order.' + class_name).length) {
+                            $('.order:not(.' + class_name + ')').fadeOut(200);
+                            $('.order.' + class_name).fadeIn(200, function () {
+                                tool.addClass('selected');
+                                $('.tool').removeClass('disabled').attr('disabled', false);
+                            });
+                        } else {
+                            $('.order').fadeOut(200, function () {
+                                $('.tool').removeClass('disabled').attr('disabled', false);
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        $('#OrderExtendModal').on('show.bs.modal', function (e) {
+            var order = $(e.relatedTarget).closest('.order');
+            var modal = $(this);
+            $.ajax({
+                url: 'order-extend-load/',
+                type: 'post',
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    order_id: order.data('id')
+                }
+            }).done(function (data) {
+                if (data['dishes_ok']) {
+                    modal.find('.modal-body *').remove();
+                    modal.find('.modal-footer *').remove();
+                    $.each(data['price_list'], function (days, price) {
+                        var extend_block = '<a href="#order-extend" class="extend w-100 border d-block text-center p-2" data-days="' + days + '" data-id="' + order.data('id') + '">';
+                        extend_block += '<h4 class="font-weight-bold">{{ page.days }}: ' + days + '</h4>';
+                        extend_block += '<h5 class="h5">{{ page.price }}: ' + price + ' ₪</h5>';
+                        extend_block += '</a>';
+                        modal.find('.modal-body').append(extend_block);
+                    });
+                } else {
+                    modal.modal('hide');
+                    $('#FailureOrderModal .modal-body').append('<div class="alert alert-info"><strong>{{ page.plan_changed }}</strong><br>{{ page.plan_changed_info }}</div>');
+                    $('#FailureOrderModal .modal-footer').append('<a href="" class="btn btn-sm default">{{ page.home }}</a>');
+                    $('#FailureOrderModal').modal('show');
+                }
+            });
+        });
+
+        function generateOrderBlock(order, today_str, moderate=false) {
+            var order_last_date_str = order.last_date.split('.');
+            var order_last_date = new Date(parseInt(order_last_date_str[2]), parseInt(order_last_date_str[1]) - 1, parseInt(order_last_date_str[0]));
+            var order_first_date_str = order.first_date.split('.');
+            var order_first_date = new Date(parseInt(order_first_date_str[2]), parseInt(order_first_date_str[1]) - 1, parseInt(order_first_date_str[0]));
+            var today = today_str.split('.');
+            var today_date = new Date(parseInt(today[2]), parseInt(today[1]) - 1, parseInt(today[0]));
+            var order_status = '';
+            if (!order.is_payed) {
+                order_status += 'not-payed ';
+            }
+            if (order.frozen) {
+                order_status += 'frozen ';
+            } else {
+                if (order.frozen_to) {
+                  var order_frozen_to_str = order.frozen_to.split('.');
+                  var order_frozen_to = new Date(parseInt(order_frozen_to_str[2]), parseInt(order_frozen_to_str[1]) - 1, parseInt(order_frozen_to_str[0]));
+                  if (order_frozen_to <= today_date) {
+                    order_status += 'frozen ';
+                  }
+                }
+                if (order_last_date >= today_date && order_first_date <= today_date) {
+                    order_status += 'active ';
+                }
+                if (order.waiting) {
+                    order_status += 'waiting ';
+                } else if (order_last_date < today_date) {
+                    order_status += 'finished ';
+                }
+                if (order.close_to_finish) {
+                    order_status += 'close-to-finish ';
+                }
+            }
+            var order_block = '';
+            if (moderate) {
+                order_block += '<div class="col-12 col-md-6 mb-5 order all ' + order_status + ' new" style="display: none" data-id=' + order.id + ' data-menu="' + order.menu.id + '" data-menuparent="' + order.menu.parent_id + '" data-days="' + order.days + '">';
+                order_block += '<div class="card h-100">';
+                order_block += '<div class="card-header">';
+				order_block += '<h5 class="h5 font-weight-bold mb-0"><i class="far fa-hashtag"></i>Номер заказа: ' + order.id + '</h5>';
+			    order_block += '</div>';
+                order_block += '<div class="card-body mb-0">';
+                order_block += '<h4 class="card-title font-weight-bold mb-3">' + order.menu.name + '</h4>';
+                order_block += '<div class="mb-3">';
+                order_block += '<a href="#OrderShowDishesModal" class="btn btn-sm default show-dishes">Показать блюда</a>';
+                order_block += '</div>';
+                if (order.allowed_menu_change) {
+                    order_block += '<div class="mb-3">';
+                    order_block += '<a href="#OrderChangeMenuModal" class="btn btn-sm default change-menu">Сменить меню</a>';
+                    order_block += '</div>';
+                }
+                if (order.changed_menu && order.to_return !== 0 && order_last_date >= today_date) {
+                    order_block += '<div class="mb-3">';
+                    order_block += '<h5 class="h5 mb-2">Необходимо доплатить: ' + -order.to_return + ' ₪</h5>';
+                    order_block += '<a href="#" class="btn btn-sm default make-order-to-return-payed">Выполнено</a>';
+                    order_block += '</div>';
+                }
+                order_block += '</div>';
+                order_block += '<ul class="list-group list-group-flush">';
+                order_block += '<li class="list-group-item">';
+                order_block += '<h5 class="h5 mb-0"><i class="far fa-clock"></i>Дата создания: ' + order.created + '</h5>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item">';
+                order_block += '<h5 class="h5 mb-0"><i class="far fa-user"></i>Заказчик: ' + order.name + '</h5>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item">';
+                order_block += '<a href="tel:' + order.phone + '" class="h5 mb-0"><i class="far fa-phone"></i>Телефон: ' + order.phone + '</a>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item p-0" id="accordion-tab-' + order.id + '-more">';
+                order_block += '<div class="card border-0 rounded-0">';
+                order_block += '<div class="card-header border-0 rounded-0" id="accordion-tab-' + order.id + '-heading-more">';
+                order_block += '<h5 class="mb-0">';
+                order_block += '<a href="#accordion-tab-' + order.id + '-content-more" class="border-0 w-100 d-flex align-items-center justify-content-between collapsed" type="button" data-toggle="collapse" data-target="#accordion-tab-' + order.id + '-content-more" aria-expanded="false" aria-controls="accordion-tab-' + order.id + '-content-more">';
+                order_block += '<h5 class="h5 mb-0">Подробно</h5><i class="fas fa-caret-down"></i>';
+                order_block += '</a>';
+                order_block += '</h5>';
+                order_block += '</div>';
+                order_block += '<div class="collapse border-top" id="accordion-tab-' + order.id + '-content-more" aria-labelledby="accordion-tab-' + order.id + '-heading-more" data-parent="#accordion-tab-' + order.id + '-more">';
+                order_block += '<div class="card-body" style="padding: 0 !important">';
+                order_block += '<ul class="list-group list-group-flush">';
+                order_block += '<li class="list-group-item">';
+                order_block += '<h5 class="h5 mb-0"><i class="far fa-coin"></i>Цена: ' + order.price + ' ₪</h5>';
+                order_block += '</li>';
+                var payment_type_translate = {
+                    'card_phone': 'Картой по телефону',
+                    'card_delivery': 'Картой курьеру',
+                    'cash_delivery': 'Наличными курьеру',
+                }
+                order_block += '<li class="list-group-item">';
+                order_block += '<h5 class="h5 mb-0"><i class="far fa-wallet"></i>Метод оплаты: ' + payment_type_translate[order.payment_type] + '</h5>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item">';
+                order_block += '<a href="mailto:' + order.email + '" class="h5 mb-0"><i class="fas fa-at"></i>Email: ' + order.email + '</a>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item">';
+                order_block += '<h5 class="h5 mb-0"><i class="far fa-map"></i>Адрес: ' + order.address + '</h5>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item">';
+                order_block += '<h5 class="h5 mb-0"><i class="far fa-comment-dots"></i>Комментарий: ' + order.comment + '</h5>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item d-flex align-items-center justify-content-between">';
+                if (order.last_date !== order.first_date) {
+                    order_block += '<h5 class="h5 d-flex align-items-center mr-1 mb-0"><i class="far fa-calendar-alt"></i><div class="order-dates">' + order.first_date + ' - ' + order.last_date + '</div></h5>';
+                } else {
+                    order_block += '<h5 class="h5 d-flex align-items-center mr-1 mb-0"><i class="far fa-calendar-alt"></i><div class="order-dates">' + order.first_date + '</div></h5>';
+                }
+                if (order.extend_allowed) {
+                    order_block += '<a href="#OrderExtendModal" class="btn btn-sm default ext" data-toggle="modal" data-target="#OrderExtendModal"><i class="fas fa-plus"></i></a>';
+                }
+                order_block += '</li>';
+                order_block += '<li class="list-group-item">';
+                order_block += '<div class="freeze-dropdown default" data-maxdate="' + order.last_date + '">';
+                order_block += `<button class="btn btn-sm default freeze">Заморозить</button>`;
+                order_block += '</div>';
+                if (order.frozen_from) {
+                    order_block += `<h5 class="h5 mt-2 d-flex align-items-center will-be-frozen"><i class="fas fa-snowflake"></i>Будет заморожено: ` + order.frozen_from + '</h5>';
+                    order_block += '<div class="unfreeze-dropdown default">';
+                    order_block += `<button class="btn btn-sm default unfreeze">Разморозить</button>`;
+                    order_block += '</div>';
+                    if (order.frozen_to) {
+                       order_block += `<h5 class="h5 d-flex align-items-center mt-2 will-be-unfrozen"><i class="fas fa-snowflake"></i>{{ page.will_be_unfrozen }} ` + order.frozen_to + '</h5><button class="btn btn-sm default delete-freeze">Удалить заморозку</button>';
+                    }
+                }
+                order_block += '</li>';
+                if (order_last_date >= today_date && order_first_date <= today_date) {
+                    order_block += '<li class="list-group-item">';
+                    order_block += `<h5 class="h5 mb-0" style="color: var(--color_default_darken)"><i class="fas fa-toggle-on"></i>Активно</h5>`;
+                    order_block += '</li>';
+
+                } else {
+                  if (order.waiting) {
+                    order_block += '<li class="list-group-item d-flex align-items-center justify-content-between">';
+                    order_block += `<h5 class="h5 mb-0" style="color: var(--color_default_darken)"><i class="fas fa-hourglass-half"></i>Ожидает</h5>`;
+                    order_block += '</li>';
+                  } else {
+                    order_block += '<li class="list-group-item d-flex align-items-center justify-content-between">';
+                    order_block += `<h5 class="h5 mb-0" style="color: var(--color_red_darken)"><i class="fas fa-toggle-off"></i>Завершено</h5>`;
+                    order_block += '</li>';
+                  }
+                }
+                if (!order.is_payed) {
+                    order_block += '<li class="list-group-item">';
+                    order_block += `<h5 class="h5 mb-0"><i class="far fa-question-circle"></i>Не оплачено</h5>`;
+                    order_block += '</li>';
+                    order_block += '<li class="list-group-item">';
+                    order_block += '<a href="#" class="btn btn-sm default make-order-payed">Отметить оплаченным</a>';
+                    order_block += '</li>';
+                }
+                order_block += '</ul>';
+                order_block += '</div>';
+                order_block += '</div>';
+                order_block += '</div>';
+                order_block += '</li>';
+                order_block += '</ul>';
+                order_block += '</div>';
+                order_block += '</div>';
+            } else {
+                order_block += '<div class="col-12 col-sm-6 col-md-4 mb-5 order all ' + order_status + ' new" style="display: none" data-id=' + order.id + ' data-menu="' + order.menu.id + '" data-menuparent="' + order.menu.parent_id + '" data-days="' + order.days + '">';
+                order_block += '<div class="card h-100">';
+                order_block += '<img class="card-img-top" src="' + menu_types[order.menu.parent_id].image.webp_url + `" onerror="this.onerror=null; this.src='` + menu_types[order.menu.parent_id].image.url + `'" alt="` + order.menu.type + ' image"/>';
+                order_block += '<div class="card-body">';
+                order_block += '<h4 class="card-title font-weight-bold">' + order.menu.name + '</h4>';
+                if (order.allowed_menu_change) {
+                    order_block += `<a href="#OrderChangeMenuModal" class="btn d-block btn-sm mb-2 default change-menu">{{ page.change_menu }}</a>`;
+                }
+                order_block += '<p class="card-text mb-0">' + order.menu.description + '</p>';
+                order_block += `<a href="#OrderShowDishesModal" class="btn d-block btn-sm mt-4 default show-dishes">{{ page.show_dishes }}</a>`;
+                order_block += '</div>';
+                order_block += '<ul class="list-group list-group-flush">';
+                order_block += '<li class="list-group-item">';
+                order_block += '<h5 class="h5 mb-0"><i class="far fa-clock"></i>{{ page.days }}: ' + order.days + '</h5>';
+                order_block += '</li>';
+                order_block += '<li class="list-group-item d-flex align-items-center justify-content-between">';
+                if (order.last_date !== order.first_date) {
+                    order_block += '<h5 class="h5 d-flex align-items-center mr-1 mb-0"><i class="far fa-calendar-alt"></i><div class="order-dates">' + order.first_date + ' - ' + order.last_date + '</div></h5>';
+                } else {
+                    order_block += '<h5 class="h5 d-flex align-items-center mr-1 mb-0"><i class="far fa-calendar-alt"></i><div class="order-dates">' + order.first_date + '</div></h5>';
+                }
+                if (order.extend_allowed) {
+                    order_block += '<a href="#OrderExtendModal" class="btn btn-sm default ext" data-toggle="modal" data-target="#OrderExtendModal"><i class="fas fa-plus"></i></a>';
+                }
+                order_block += '</li>';
+                var order_freeze_info = '';
+                order_freeze_info += '</button>';
+                order_freeze_info += '<div class="freeze-info-container">';
+                order_freeze_info += '<div class="freeze-info">';
+                order_freeze_info += '<div class="d-block p-3">';
+                order_freeze_info += `{{ page.freeze_info }}`;
+                order_freeze_info += `<a href="../#freeze-info" class="freeze-link d-block mt-2"><i class="fas fa-question mr-2"></i>{{ page.freeze_info_link }}</a>`;
+                order_freeze_info += '</div>';
+                order_freeze_info += '</div>';
+                order_freeze_info += '</div>';
+                order_freeze_info += '</div>';
+                order_block += '<li class="list-group-item">';
+                order_block += '<div class="d-block">';
+                order_block += '<div class="default">';
+                order_block += `<button class="btn btn-sm default freeze">{{ page.freeze }}</button>`;
+                order_block += order_freeze_info;
+                order_block += '</div>';
+                order_block += '</li>';
+                if (order_last_date >= today_date && order_first_date <= today_date) {
+                    order_block += '<li class="list-group-item">';
+                    order_block += '<div class="d-flex align-items-center justify-content-between">';
+                    order_block += `<h5 class="h5 mb-0" style="color: var(--color_default_darken)"><i class="fas fa-toggle-on"></i>{{ page.active_t }}</h5>`;
+                    order_block += '</div>';
+                    order_block += '</li>'
+                } else {
+                    if (order.is_payed) {
+                        order_block += '<li class="list-group-item d-flex align-items-center justify-content-between">';
+                        order_block += `<h5 class="h5 mb-0" style="color: var(--color_red_darken)"><i class="fas fa-toggle-off"></i>{{ page.completed }}</h5>`;
+                        order_block += '</li>';
+                    }
+                }
+                if (!order.is_payed) {
+                    order_block += '<li class="list-group-item">';
+                    order_block += `<h5 class="h5 mb-0"><i class="far fa-question-circle"></i>{{ page.not_payed }}</h5>`;
+                    order_block += '</li>';
+                }
+                if (order.changed_menu && order.to_return !== 0 && order_last_date >= today_date) {
+                    order_block += '<li class="list-group-item">';
+                    order_block += `<h5 class="h5 mb-2">{{ page.you_need_to_pay }} ` + -order.to_return + ' ₪</h5>'
+                    order_block += '</li>';
+                }
+                order_block += '</ul>';
+                order_block += '</div>';
+                order_block += '</div>';
+            }
+            return order_block;
+        }
+
+        $('html, body').on('click', '#OrderExtendModal .extend', function () {
+            var btn = $(this);
+            if (!btn.hasClass('disabled')) {
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: 'order-extend/',
+                    type: 'post',
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}',
+                        order_id: btn.data('id'),
+                        days: btn.data('days')
+                    }
+                }).done(function (data) {
+                    if (data['success']) {
+                        if (data['dishes_ok']) {
+                            $('#orders .row .order[data-id="' + btn.data('id') + '"] .ext').remove();
+                            $('#OrderExtendModal').modal('hide');
+                            {% if not profile.is_moderator %}
+                                var success = '<div class="alert alert-success"><strong>{{ wt.order_success }}</strong><hr>{{ wt.unique_order_number }}: <strong>' + (parseInt(data.order.id)).toLocaleString() + '</strong><br><br>{{ wt.to_pay }}: <strong>' + (parseFloat(data.to_pay)).toLocaleString() + ' ₪</strong><hr><strong><i>{{ wt.order_success_info }}</i></strong></div>';
+                                $('#SuccessOrderModal .modal-body *').remove();
+                                $('#SuccessOrderModal .modal-body').append(success);
+                                $('#SuccessOrderModal').modal('show');
+                            {% endif %}
+                            $('#orders .row').prepend(generateOrderBlock(data.order, data.today, {% if profile.is_moderator %} true {% else %} false {% endif %}))
+                            $('#orders .new').fadeIn(200, function () {
+                                $(this).removeClass('new');
+                            });
+                        } else {
+                            $('#OrderExtendModal').find('.modal-body *').remove();
+                            $('#OrderExtendModal .modal-footer').remove();
+                            $('#OrderExtendModal').find('.modal-body').append('<div class="alert alert-info"><strong>{{ page.plan_changed }}</strong><br>{{ page.plan_changed_info }}</div>');
+                            $('#OrderExtendModal').find('.modal-body').after('<div class="modal-footer text-right"><a href="" class="btn btn-sm default">{{ page.home }}</a></div>')
+                        }
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                });
+            }
+        });
+
+        $('#GetReferralLinkModal').on('show.bs.modal', function(e) {
+            $('.get-referral-link').addClass('d-none');
+        });
+
+        $('#GetReferralLinkModal').on('hide.bs.modal', function(e) {
+            $('.get-referral-link').removeClass('d-none');
+        });
+
+	$('#back-to-dishlist').on('click', function(){
+          $('#ChangeDishModal').modal('hide');
+        	$('#OrderShowDishesModal').modal('show');
+        })
+
+    </script>
+
+{% endblock %}

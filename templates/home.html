@@ -1,0 +1,1535 @@
+{% extends 'wrapper.html' %}
+{% load static %}
+
+{% block metadata %}
+
+    <title>{{ fixed.site_name }} {{ fixed.separator }} {{ page.title }}</title>
+    <meta name="description" content="{{ page.meta_description }}">
+    <meta name="keywords" content="{{ page.meta_keywords }}">
+    <meta property="og:title" content="{{ page.open_graph_title }}">
+    <meta property="og:description" content="{{ page.open_graph_description }}">
+    {% if page.open_graph_image %}
+        <meta property="og:image" content="{{ page.open_graph_image.url }}">
+    {% endif %}
+    <meta property="og:url" content="{{ page.get_absolute_url }}">
+
+{% endblock %}
+
+
+
+{% block styles %}
+
+    <link rel="stylesheet" href="{% static 'css/pure-drawer-1.0.2.min.css' %}" type="text/css">
+    <link rel="stylesheet" href="{% static 'css/effects.jquery.min.css' %}" type="text/css">
+    <link rel="stylesheet" href="{% static 'css/home_styles.css' %}" type="text/css">
+
+{% endblock %}
+
+
+
+{% block content %}
+
+    <nav class="navbar d-md-fixed navbar-light bg-light p-2 shadow fixed-top">
+        <div class="container-fluid">
+            {% if video|length %}
+                <a href="#"
+                   class="d-none d-small-block video" data-language="{{ LANGUAGE_CODE|capfirst }}"
+                   data-toggle="tooltip" data-placement="bottom" title="{{ wt.info_video }}">
+                    <i class="fas fa-question"></i>
+                </a>
+            {% endif %}
+            <div class="d-flex align-items-center d-small-center w-100">
+                <a href="#about-us" class="navbar-brand d-block my-auto">
+                    <img src="{{ fixed.logo_webp.url }}" onerror="this.onerror=null; this.src='{{ fixed.logo.url }}'"
+                         alt="{{ fixed.base }} logo">
+                </a>
+                <div class="dropdown default d-small-none ml-3 mr-4" data-toggle="tooltip" data-placement="right"
+                     title="{{ wt.language }}">
+                    <button type="button" class="btn d-block my-auto default btn-sm dropdown-toggle"
+                            data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false">
+                        {% if LANGUAGE_CODE == 'ru' %}RU{% else %}HE{% endif %}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-left language-change">
+                        <div id="language-ru" class="dropdown-item{% if LANGUAGE_CODE == 'ru' %} active{% endif %}">
+                            Русский
+                        </div>
+                        <div id="language-he" class="dropdown-item{% if LANGUAGE_CODE == 'he' %} active{% endif %}">
+                            עִברִית
+                        </div>
+                    </div>
+                </div>
+                {% if video|length %}
+                    <a href="#" class="d-small-none video" data-language="{{ LANGUAGE_CODE|capfirst }}"
+                       data-toggle="tooltip" data-placement="bottom" title="{{ wt.info_video }}">
+                        <i class="fas fa-question"></i>
+                    </a>
+                {% endif %}
+                <div class="d-flex align-items-center mx-3">
+                    <a href="https://wa.me/{{ fixed.whatsapp_number }}" target="_blank" rel="noreferrer"
+                       class="d-small-none"
+                       data-toggle="tooltip" data-placement="bottom" title="WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <a href="https://instagram.com/_u/{{ fixed.instagram_username }}" rel="noreferrer" target="_blank"
+                       class="mx-1 d-small-none" data-toggle="tooltip" data-placement="bottom" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="https://facebook.com/{{ fixed.facebook_username }}" rel="noreferrer" target="_blank"
+                       class="d-small-none"
+                       data-toggle="tooltip" data-placement="bottom" title="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                </div>
+                <div class="d-flex align-items-center d-small-none">
+                    <a href="tel:{{ fixed.phone_number }}" class="d-flex align-items-center"
+                       data-toggle="tooltip" data-placement="bottom" title="{{ page.call }}">
+                        <i class="fas fa-phone"></i>
+                        <h4 class="mb-0 mx-1">{{ fixed.phone_number }}</h4>
+                    </a>
+                    <a href="#CallMeModal" class="btn btn-sm default outline mx-1" data-toggle="modal"
+                       data-target="#CallMeModal">
+                        {{ wt.call_me }}
+                    </a>
+                </div>
+                <div class="d-flex align-items-center d-small-none ml-auto">
+                    <div class="d-flex align-items-center">
+                        <a href="#why-us-scroll" class="navigation-link flowing-scroll">{{ wt.why_us }}</a>
+                        <a href="#menu" class="navigation-link flowing-scroll">{{ wt.our_menu }}</a>
+                        <a href="#reviews" class="navigation-link flowing-scroll">{{ wt.reviews }}</a>
+                        <a href="#faq" class="navigation-link flowing-scroll">{{ wt.questions }}</a>
+                    </div>
+                    {% if user.is_authenticated %}
+                        <a href="#" class="d-flex align-items-center personal-url">
+                            <i class="fas fa-sign-in-alt mx-2"></i>
+                            <div>{{ wt.personal_account }}</div>
+                        </a>
+                    {% else %}
+                        <a href="#LoginModal" class="d-flex align-items-center" data-toggle="modal"
+                           data-target="#LoginModal">
+                            <i class="fas fa-sign-in-alt mx-2"></i>
+                            <div>{{ wt.personal_account }}</div>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="d-none d-small-block">
+                <div class="dropdown default language-dropdown-small" data-toggle="tooltip" data-placement="bottom"
+                     title="{{ wt.language }}">
+                    <button type="button" class="btn d-block my-auto default btn-sm dropdown-toggle"
+                            data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false">
+                        {% if LANGUAGE_CODE == 'ru' %}RU{% else %}HE{% endif %}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right language-change">
+                        <div id="language-ru" class="dropdown-item{% if LANGUAGE_CODE == 'ru' %} active{% endif %}">
+                            Русский
+                        </div>
+                        <div id="language-he" class="dropdown-item{% if LANGUAGE_CODE == 'he' %} active{% endif %}">
+                            עִברִית
+                        </div>
+                    </div>
+                </div>
+                <div class="pure-container default" data-effect="pure-effect-slide">
+                    <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="checkbox" id="pure-toggle-right"
+                                                          class="pure-toggle" data-toggle="right">
+                    <label class="text-left pure-toggle-label" for="pure-toggle-right" data-toggle-label="right">
+                        <div class="pure-toggle-icon"></div>
+                    </label>
+                    <div class="pure-drawer" data-position="right">
+                        <div class="w-100">
+                            <div class="pure-drawer-contain-main">
+                                <div class="call-block">
+                                    <a class="call-link" href="tel:{{ fixed.phone_number }}"><i
+                                            class="fas fa-phone"></i></a>
+                                    <div>
+                                        <a class="d-block w-100"
+                                           href="tel:{{ fixed.phone_number }}">{{ fixed.phone_number }}</a>
+                                        <a href="#CallMeModal" data-toggle="modal" data-target="#CallMeModal"
+                                           class="btn btn-sm mt-2 default"
+                                           data-toggle="tooltip">
+                                            {{ wt.call_me }}
+                                        </a>
+                                    </div>
+                                </div>
+                                <hr>
+                                {% if user.is_authenticated %}
+                                    <a href="#" class="pure-drawer-link personal-url">
+                                        <i class="fas fa-sign-in-alt"></i>
+                                        {{ wt.personal_account }}
+                                    </a>
+                                {% else %}
+                                    <a href="#LoginModal" class="pure-drawer-link" data-toggle="modal"
+                                       data-target="#LoginModal">
+                                        <i class="fas fa-sign-in-alt"></i>
+                                        {{ wt.personal_account }}
+                                    </a>
+                                {% endif %}
+                                <hr>
+                                <a href="#why-us-scroll"
+                                   class="pure-drawer-link mt-2 flowing-scroll"><i></i>{{ wt.why_us }}</a>
+                                <a href="#menu" class="pure-drawer-link flowing-scroll"><i></i>{{ wt.our_menu }}</a>
+                                <a href="#reviews" class="pure-drawer-link flowing-scroll"><i></i>{{ wt.reviews }}</a>
+                                <a href="#faq" class="pure-drawer-link flowing-scroll"><i></i>{{ wt.questions }}
+                                </a>
+                                <hr>
+                                <div class="w-100" style="height: -webkit-fill-available">
+                                    <div class="w-100" style="position: absolute; bottom: 0;">
+                                        <a href="https://wa.me/{{ fixed.whatsapp_number }}" target="_blank"
+                                           rel="noreferrer"
+                                           class="pure-drawer-link"><i class="fab fa-whatsapp"></i>WhatsApp</a>
+                                        <a href="https://instagram.com/_u/{{ fixed.instagram_username }}"
+                                           target="_blank" rel="noreferrer" class="pure-drawer-link"><i
+                                                class="fab fa-instagram"></i>Instagram</a>
+                                        <a href="https://facebook.com/{{ fixed.facebook_username }}" target="_blank"
+                                           rel="noreferrer"
+                                           class="pure-drawer-link mx-4"><i class="fab fa-facebook-f"></i>Facebook</a>
+                                        <hr>
+                                        <a href="#menu"
+                                           class="pure-drawer-link flowing-scroll d-flex justify-content-center btn default rounded-0 p-0 shine"
+                                           style="text-transform: uppercase; height: 8vh !important">{{ page.new_order }}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pure-pusher-container">
+                        <div class="pure-pusher"></div>
+                    </div>
+                    <label class="text-left pure-overlay" for="pure-toggle-right" data-overlay="right"></label>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="carousel fade" style="height: 100vh; width: 100%; top: 0" data-ride="carousel" data-pause=false
+         data-duration="3000"
+         id="main">
+        <div class="carousel-inner">
+            <div class="bg-slider-overlay" style="background-color: rgba(0, 0, 0, 0.{{ page.slider_overlay }});"></div>
+            {% if page.slider_image_1 %}
+                <div class="carousel-item active">
+                    <img src="{{ page.slider_image_1_webp.url }}"
+                         onerror="this.onerror=null; this.src='{{ page.slider_image_1.url }}'"
+                         alt="Slider image 1">
+                </div>
+            {% endif %}
+            {% if page.slider_image_2 %}
+                <div class="carousel-item">
+                    <img src="{{ page.slider_image_2_webp.url }}"
+                         onerror="this.onerror=null; this.src='{{ page.slider_image_2.url }}'"
+                         alt="Slider image 2">
+                </div>
+            {% endif %}
+            {% if page.slider_image_3 %}
+                <div class="carousel-item">
+                    <img src="{{ page.slider_image_3_webp.url }}"
+                         onerror="this.onerror=null; this.src='{{ page.slider_image_3.url }}'"
+                         alt="Slider image 3">
+                </div>
+            {% endif %}
+            {% if page.slider_image_4 %}
+                <div class="carousel-item">
+                    <img src="{{ page.slider_image_4_webp.url }}"
+                         onerror="this.onerror=null; this.src='{{ page.slider_image_4.url }}'"
+                         alt="Slider image 4">
+                </div>
+            {% endif %}
+            {% if page.slider_image_5 %}
+                <div class="carousel-item">
+                    <img src="{{ page.slider_image_5_webp.url }}"
+                         onerror="this.onerror=null; this.src='{{ page.slider_image_5.url }}'"
+                         alt="Slider image 5">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="minh-100 d-flex align-items-center justify-content-center" style="position: relative;">
+        <div class="slide-text text-center">
+            <h1>
+                {% autoescape off %}
+                    {{ page.slider_title }}
+                {% endautoescape %}
+            </h1>
+            <h2>
+                {% autoescape off %}
+                    {{ page.slider_description }}
+                {% endautoescape %}
+            </h2>
+            <a class="btn hero hero-1" href="tel:{{ fixed.phone_number }}">{{ page.call_us }}</a>
+            <a class="btn hero hero-2 flowing-scroll" href="#select-plan1">{{ page.select_menu }}</a>
+        </div>
+        <div class="scroll-down">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </div>
+    <div id="why-us" class="container-fluid pt-0">
+        <div class="row">
+            <div class="col-md-4">
+                <div id="why-us-scroll" class="circle"><i
+                        class="{{ page.pluses1_icon }} revealator-zoomin revealator-once"
+                        aria-hidden="true"></i></div>
+                <h3 class="mb-3 revealator-zoomin revealator-once">{{ page.pluses1_title }}</h3>
+                <h4 class="revealator-zoomin revealator-once">{{ page.pluses1_description }}</h4>
+            </div>
+            <div class="col-md-4">
+                <div class="circle"><i
+                        class="{{ page.pluses2_icon }} revealator-zoomin revealator-once revealator-delay2"
+                        aria-hidden="true"></i></div>
+                <h3 class="mb-3 revealator-zoomin revealator-once revealator-delay2">{{ page.pluses2_title }}</h3>
+                <h4 class="revealator-zoomin revealator-once revealator-delay2">{{ page.pluses2_description }}</h4>
+            </div>
+            <div class="col-md-4">
+                <div class="circle"><i
+                        class="{{ page.pluses3_icon }} revealator-zoomin revealator-once revealator-delay4"
+                        aria-hidden="true"></i></div>
+                <h3 class="mb-3 revealator-zoomin revealator-once revealator-delay4">{{ page.pluses3_title }}</h3>
+                <h4 class="revealator-zoomin revealator-once revealator-delay4">{{ page.pluses3_description }}</h4>
+            </div>
+        </div>
+    </div>
+    <div id="select-plan1" class="plan1-block jumbotron text-center">
+        <h2 class="font-weight-bold shine shine-default">{{ page.select_your_aim }}</h2>
+        <hr class="bg-default">
+        <div class="plan1-container mt-5 px-1">
+            {% for menu_type in menu_types %}
+                <div class="plan1-wrap d-inline-block mt-3 revealator-slidedown revealator-once {% cycle '' 'revealator-delay2' 'revealator-delay4' 'revealator-delay6' %}">
+                    <div class="plan1" data-id="{{ menu_type.id }}">
+                        <div class="plan1-bg">
+                            <img class="plan1-bg-image" src="{{ menu_type.image_webp.url }}"
+                                 onerror="this.onerror=null; this.src='{{ menu_type.image.url }}'" alt="Plan {{ menu_type.name }} image">
+                            <div class="plan1-bg-backdrop"></div>
+                        </div>
+                        <h3 class="name">{{ menu_type.name }}</h3>
+                        <div class="h5 short-description">{{ menu_type.short_description }}</div>
+                        <h4 class="description">{{ menu_type.description }}</h4>
+                        <div class="h5 extra-short-description invisible">&nbsp;</div>
+                        <div class="btn invisible mb-4">&nbsp;</div>
+                        <div class="to-bottom">
+                            <div class="h5 extra-short-description">{{ menu_type.extra_short_description }}</div>
+                            <button type="button" class="btn default plan1_select outline">{{ page.select }}</button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="select-plan2" class="plan2-block container-fluid pb-4">
+        <div class="plan2-container d-block nav nav-pills" role="tablist">
+            {% for menu in menus %}
+                <a class="nav-link plan2-wrap d-none plan2-related-to-{{ menu.type.id }}"
+                   data-related="{{ menu.type.id }}"
+                   data-toggle="pill"
+                   data-id="{{ menu.id }}"
+                   disabled=true
+                   href="#menu-{{ menu.id }}"
+                   data-target="#menu-{{ menu.id }}"
+                   role="tab"
+                   aria-controls="menu-{{ menu.id }}">
+                    <div class="plan2">
+                        <div class="plan2-name">{{ menu.name }}</div>
+                        <div class="plan2-description">{{ menu.description }}</div>
+                        <div class="plan2-calories">{{ wt.calories_short_start }} {{ menu.calories }} {{ wt.calories_short }}</div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="menu" class="bg-white" style="padding-bottom: calc(2.4vmax + 30px);">
+        <div class="container tab-content">
+            {% for menu in menus %}
+                <div class="menu tab-pane {% if forloop.first %} active {% endif %}"
+                     id="menu-{{ menu.id }}" role="tabpanel" data-name="{{ menu.type }}" data-id="{{ menu.id }}"
+                     aria-labelledby="Menu {{ menu.name }} tab">
+                    <a href="#select-plan1" class="h3 mb-5 flowing-scroll no-plan1 shine shine-default">{{ page.select_plan1 }}</a>
+                    <a href="#select-plan2" class="h3 mb-5 flowing-scroll no-plan2 d-none shine shine-default">{{ page.select_plan2 }}</a>
+                    <h4 class="menu-full-name d-none">{{ menu.name }}</h4>
+                    <h4 class="h5 menu-description d-none">{{ menu.description }}</h4>
+                    <ul class="nav nav-weekdays nav-pills justify-content-center mb-5{% if LANGUAGE_CODE == 'he' %} flex-row-reverse{% endif %}"
+                        role="tablist">
+                        {% for date_data in dates %}
+                            <li class="nav-item d-inline-flex">
+                                <a class="nav-link d-flex align-items-center{% if forloop.first %} active{% endif %}"
+                                   data-toggle="pill"
+                                   href="#menu-{{ menu.id }}-circleday-{{ date_data.circleday }}" role="tab"
+                                   aria-controls="Menu {{ menu.name }} day {{ date_data.date|date:"d.m" }}"
+                                   {% if forloop.first %}aria-selected="true"{% endif %}>
+                                    {% if date_data.weekday == 0 %}
+                                        {{ page.monday_short }}
+                                    {% elif date_data.weekday == 1 %}
+                                        {{ page.tuesday_short }}
+                                    {% elif date_data.weekday == 2 %}
+                                        {{ page.wednesday_short }}
+                                    {% elif date_data.weekday == 3 %}
+                                        {{ page.thursday_short }}
+                                    {% elif date_data.weekday == 4 %}
+                                        {{ page.friday_short }}
+                                    {% elif date_data.weekday == 5 %}
+                                        {{ page.saturday_short }}
+                                    {% elif date_data.weekday == 6 %}
+                                        {{ page.sunday_short }}
+                                    {% endif %} {{ date_data.date|date:"d.m" }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="tab-content mt-4">
+                        <div class="menu-backdrop"></div>
+                        {% for date_data in dates %}
+                            <div class="tab-pane{% if forloop.first and LANGUAGE_CODE == 'ru' %} show active{% elif forloop.last and LANGUAGE_CODE == 'he' %} show active{% endif %}"
+                                 id="menu-{{ menu.id }}-circleday-{{ date_data.circleday }}" role="tabpanel"
+                                 aria-labelledby="menu-{{ menu.id }}-circleday-{{ date_data.circleday }}-tab">
+                                <div class="row">
+
+                                </div>
+                                <div class="w-100 mt-3 text-center">
+                                    <a href="#order"
+                                       class="btn btn-lg default shine flowing-scroll">{{ page.want_this_menu }}</a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div id="order" class="container-fluid mx-0 pb-5 text-center" style="background: transparent">
+        <a href="#select-plan1" class="h3 flowing-scroll text-white no-plan1 shine shine-default">{{ page.select_plan1 }}</a>
+        <a href="#select-plan2" class="h3 flowing-scroll text-white no-plan2 d-none shine shine-default">{{ page.select_plan2 }}</a>
+        <h2 class="font-weight-bold text-center text-white d-none page-order">{{ page.order }}</h2>
+        <hr class="bg-default">
+        <div class="container pt-2 pb-0">
+            <div class="order-container position-relative">
+                <div class="order-backdrop"></div>
+                <div class="left-part">
+                    <div class="left-part-arrows">
+                        <div class="days-selection" data-days="1">
+                            <div class="arrow">
+                                <h4 class="days-selection-count mb-1">{{ page.meal_days_1 }}</h4>
+                            </div>
+                        </div>
+                        <div class="days-selection" data-days="2">
+                            <div class="arrow">
+                                <h4 class="days-selection-count mb-1">{{ page.meal_days_2 }}</h4>
+                            </div>
+                        </div>
+                        <div class="days-selection" data-days="4">
+                            <div class="arrow">
+                                <h4 class="days-selection-count mb-1">{{ page.meal_days_4 }}</h4>
+                            </div>
+                        </div>
+                        <div class="days-selection" data-days="6">
+                            <div class="arrow">
+                                <h4 class="days-selection-count mb-1">{{ page.meal_days_6 }}</h4>
+                            </div>
+                        </div>
+                        <div class="days-selection" data-days="14">
+                            <div class="arrow">
+                                <h4 class="days-selection-count mb-1">{{ page.meal_days_14 }}</h4>
+                            </div>
+                        </div>
+                        <div class="days-selection" data-days="26">
+                            <div class="arrow">
+                                <h4 class="days-selection-count mb-1">{{ page.meal_days_26 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="right-part align-items-center justify-content-center">
+                    <div class="right-part-no-selected position-relative w-100 h-100 justify-content-center align-items-center">
+                        <div class="no-selected-arrow d-flex justify-content-center align-items-center w-75">
+                            <h2 class="mb-0">{{ page.select_days }}</h2>
+                        </div>
+                    </div>
+                    <div style="margin: 10vh 3vmax" class="right-part-selected d-none">
+                        <input type="hidden" name="referral_id" class="referral_id">
+                        <h2 class="description mb-1"></h2>
+                        <h1 class="new-price" {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %}><span class="sale-price-per-day">0</span> ₪ {{ page.per_day }}</h1>
+                        <h4 class="mb-4" {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %}><span class="sale-price">0</span> ₪ {{ page.all_days }}</h4>
+                        {% if user.is_authenticated %}
+                            <h6 class="text-left mt-4">{{ wt.payment_type }}</h6>
+                            <select class="custom-select default" name="payment_type">
+                                <option value="card_phone" selected>{{ wt.card_phone }}</option>
+                                <option value="card_delivery">{{ wt.card_delivery }}</option>
+                                <option value="cash_delivery">{{ wt.cash_delivery }}</option>
+                            </select>
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mt-2" name="address" maxlength="150"
+                                                                  placeholder="{{ wt.user_address }}" required {% if address %} value="{{ address }}" {% endif %}>
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mt-2" name="comment" maxlength="200"
+                                                                  placeholder="{{ page.comment }}">
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mt-2" name="promocode" maxlength="200"
+                                                                  placeholder="{{ page.promocode }}">
+                            <a href="#" class="btn w-100 btn-lg shine default make-order {% if not address|length %} disabled {% endif %} mt-4"
+                               {% if not address|length %} disabled {% endif %}>{{ page.order }}</a>
+                        {% else %}
+                            <h6 class="text-left mt-4">{{ wt.payment_type }}</h6>
+                            <select class="custom-select default" name="payment_type">
+                                <option value="card_phone" selected>{{ wt.card_phone }}</option>
+                                <option value="card_delivery">{{ wt.card_delivery }}</option>
+                                <option value="cash_delivery">{{ wt.cash_delivery }}</option>
+                            </select>
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mt-2" name="name" maxlength="150"
+                                                                  placeholder="{{ wt.name_and_surname }}" required>
+                            <div class="input-group mb-2">
+                                <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mb-0" name="phone" minlength="10" maxlength="150"
+                                                                  placeholder="{{ wt.user_phone }}" required>
+                                <div class="invalid-feedback mt-0">{{ wt.phone_10_error }}</div>
+                            </div>
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mb-3" name="address" maxlength="150"
+                                                                  placeholder="{{ wt.user_address }}" required>
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mb-3" name="comment" maxlength="200"
+                                                                  placeholder="{{ page.comment }}">
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default mt-2" name="promocode" maxlength="200"
+                                                                  placeholder="{{ page.promocode }}">
+                            <h5 class="h5 text-muted">{{ page.phone_info }}</h5>
+                            <a href="#" class="btn w-100 btn-lg shine default make-order disabled mt-4"
+                               disabled>{{ page.order }}</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if reviews %}
+        <div class="jumbotron mt-5" id="reviews">
+            <h2 class="font-weight-bold text-center">{{ wt.reviews }}</h2>
+            <hr class="bg-default">
+            <div class="row">
+                {% for review in reviews %}
+                    <div class="col-md-4 text-left d-inline-flex revealator-slidedown revealator-once{% cycle '' ' revealator-delay2' ' revealator-delay4' %}">
+                        <div class="card w-100"{% if forloop.last %} data-id="{{ review.id }}"{% endif %}>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-lg-4">
+                                        <div class="im">
+                                            <a href="{{ review.url }}">
+                                                <img src="{{ review.photo_webp.url }}"
+                                                     onerror="this.onerror=null; this.src='{{ review.photo.url }}'"
+                                                     alt="Review {{ forloop.counter1 }} user photo">
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-8">
+                                        <div class="im">
+                                            <a href="{{ review.url }}">
+                                                <h4>{{ review.name }}</h4>
+                                                <div class="h5 mb-0">{{ review.url }}</div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <p class="h5 text-muted card-text">{{ review.content }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="d-flex align-items-center justify-content-center" style="margin-top: 2vmax">
+                {% if reviews_count > 3 %}
+                    <div class="btn reviews-show-all default mx-2">{{ page.show_all }}</div>
+                {% endif %}
+                <a href="#WriteReviewModal" class="btn red mx-2" data-toggle="modal"
+                   data-target="#WriteReviewModal">{{ page.write_review }}</a>
+            </div>
+        </div>
+    {% endif %}
+    <div class="bg-white">
+        <div class="container text-center">
+            <h2 class="font-weight-bold">{{ page.free_delivery }}</h2>
+            <hr class="bg-default">
+            <div class="delivery-content-sm d-block d-md-none w-100 my-2">
+                <h4 class="mb-3 font-weight-bold">{{ page.free_delivery_text_1 }}</h4>
+                <h4 class="mb-3">{{ page.free_delivery_text_2 }}</h4>
+                <a href="#order" class="flowing-scroll btn btn-lg default">{{ page.order }}</a>
+            </div>
+            <div class="delivery-container pb-0 w-100">
+                <img src="{{ page.delivery_map_webp.url }}"
+                     onerror="this.onerror=null; this.src='{{ page.delivery_map.url }}'"
+                     alt="{{ page.free_delivery }} map">
+                <div class="delivery-content d-none d-md-block">
+                    <h4 class="mb-3 font-weight-bold">{{ page.free_delivery_text_1 }}</h4>
+                    <h4 class="mb-3">{{ page.free_delivery_text_2 }}</h4>
+                    <a href="#order" class="flowing-scroll btn btn-lg default">{{ page.order }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if question_blocks %}
+        <div id="faq">
+            <div class="container mb-5">
+                <h2 class="font-weight-bold text-center">{{ page.often_questions }}</h2>
+                <hr class="bg-default">
+                <ul class="nav nav-pills row mb-5" style="margin-top: calc(2.4vmax + 10px)"
+                    role="tablist">
+                    {% for question_block in question_blocks %}
+                        <li class="nav-item d-inline-flex col-12 col-sm-6 col-md-4 h-100 revealator-slideup revealator-once{% cycle '' ' revealator-delay2' ' revealator-delay4' ' revealator-delay6' ' revealator-delay8' %}">
+                            <a class="nav-link d-flex align-items-center{% if forloop.first %} active{% endif %}"
+                               data-toggle="pill"
+                               href="#pills-{{ question_block.id }}" role="tab"
+                               aria-controls="Questions about {{ question_block.name }}"
+                               aria-selected="true">
+                                <div class="w-100 h-100 text-center faq-block">
+                                    <i class="nav-link-icon {{ question_block.icon }}"></i>
+                                    <div class="nav-link-name">{{ question_block.name }}</div>
+                                </div>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div class="tab-content revealator-zoomout revealator-once">
+                    {% for question_block in question_blocks %}
+                        <div class="tab-pane fade{% if forloop.first %} show active{% endif %}"
+                             id="pills-{{ question_block.id }}" role="tabpanel"
+                             aria-labelledby="pills-{{ question_block.id }}-tab">
+                            <div class="accordion" id="accordion-tab-{{ question_block.id }}">
+                                {% for question in question_block.questions.all|get_ordered_questions %}
+                                    <div class="card">
+                                        <div class="card-header"
+                                             id="accordion-tab-{{ question_block.id }}-heading-{{ question.id }}">
+                                            <h5 class="h5 mb-0">
+                                                <a href="#accordion-tab-{{ question_block.id }}-content-{{ question.id }}"
+                                                   class="btn-link w-100 d-flex align-items-center justify-content-between collapsed {% if question.about_freeze %} freeze {% endif %}"
+                                                   data-toggle="collapse"
+                                                   data-target="#accordion-tab-{{ question_block.id }}-content-{{ question.id }}"
+                                                   aria-expanded="false"
+                                                   aria-controls="accordion-tab-{{ question_block.id }}-content-{{ question.id }}">
+                                                    <div>{{ question.question }}</div>
+                                                    <i class="fas fa-caret-down mx-3"></i>
+                                                </a>
+                                            </h5>
+                                        </div>
+                                        <div class="collapse"
+                                             id="accordion-tab-{{ question_block.id }}-content-{{ question.id }}"
+                                             aria-labelledby="accordion-tab-{{ question_block.id }}-heading-{{ question.id }}"
+                                             data-parent="#accordion-tab-{{ question_block.id }}">
+                                            <div class="card-body text-left">
+                                                {% autoescape off %}
+                                                    {{ question.answer }}
+                                                {% endautoescape %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <a href="#CalculateCaloriesModal" data-toggle="modal" data-target="#CalculateCaloriesModal" class="calculate-calories btn default"><span>{{ page.calculate_calories }}</span><i class="fas fa-calculator ml-2"></i></a>
+
+{% endblock %}
+
+
+
+{% block modals %}
+
+    <div class="modal fade" id="WriteReviewModal" tabindex="-1" role="dialog" aria-labelledby="{{ page.write_review }}"
+         aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title font-weight-bold"
+                        id="WriteReviewModalCenterTitle">{{ page.write_review }}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <div aria-hidden="true">&times;</div>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="" id="write-review-form">
+                        {% csrf_token %}
+                        <label class="text-left d-block">
+                            <h4>{{ wt.name_and_surname }}</h4>
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} class="form-control default"
+                                                                  type="text" name="name" required>
+                        </label>
+                        <label class="text-left d-block my-3">
+                            <h4>{{ page.review }}</h4>
+                            <textarea name="content" class="form-control default overflow-hidden"
+                                      style="min-height: 150px; resize: none"></textarea>
+                        </label>
+                        <label class="text-left d-block">
+                            <h4>{{ page.contact_link }}</h4>
+                            <input {% if LANGUAGE_CODE == 'he' %} dir="rtl" {% endif %} type="text"
+                                                                  class="form-control default" name="url"
+                                                                  aria-describedby="write-review-url-help">
+                            <small id="write-review-url-help" class="form-text text-muted">
+                                {{ page.contact_link_info }}
+                            </small>
+                        </label>
+                        <div class="mt-3 btn-group text-center d-block" style="margin-bottom: 1.8vmax">
+                            <button class="btn default" type="submit" id="write-review_btn">{{ wt.send }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="SelectDishModal" tabindex="-1" role="dialog" aria-labelledby="{{ page.select_dish }}"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title font-weight-bold" id="SelectDishModalCenterTitle">{{ page.select }} <span
+                            class="daytime font-weight-bold"></span>, <span class="day font-weight-bold"></span></h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <div aria-hidden="true">&times;</div>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="CalculateCaloriesModal" tabindex="-1" role="dialog" aria-labelledby="{{ page.calories_calculator }}"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title font-weight-bold" id="CalculateCaloriesModalCenterTitle">{{ page.calories_calculator }}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <div aria-hidden="true">&times;</div>
+                    </button>
+                </div>
+                <div class="modal-body pb-4">
+                    <label class="h5" for="ageInput">{{ page.age }}</label>
+                    <input type="number" name="age" min="1" max="150" step="1" id="ageInput" class="form-control default mb-3" placeholder="{{ page.age }}">
+                    <label class="h5" for="heightInput">{{ page.height }}</label>
+                    <input type="number" name="height" min="30" max="300" step="1" id="heightInput" class="form-control default mb-3" placeholder="{{ page.height }}">
+                    <label class="h5" for="weightInput">{{ page.weight }}</label>
+                    <input type="number" name="weight" min="5" max="300" step="1" id="weightInput" class="form-control default mb-3" placeholder="{{ page.weight }}">
+                    <h5>{{ page.sex }}</h5>
+                    <div class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input default" id="radio-sex-male" name="sex" value="male" required checked>
+                        <label class="custom-control-label" for="radio-sex-male">{{ page.male }}</label>
+                    </div>
+                    <div class="custom-control custom-radio mb-3">
+                        <input type="radio" class="custom-control-input default" id="radio-sex-female" name="sex" value="female" required>
+                        <label class="custom-control-label" for="radio-sex-female">{{ page.female }}</label>
+                    </div>
+                    <h5>{{ page.physical_activities }}</h5>
+                    <div class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input default" id="radio-physical-activities-1" name="physical-activities" value="1.2" required>
+                        <label class="custom-control-label" for="radio-physical-activities-1">{{ page.physical_activities1 }}</label>
+                    </div>
+                    <div class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input default" id="radio-physical-activities-2" name="physical-activities" value="1.3" required checked>
+                        <label class="custom-control-label" for="radio-physical-activities-2">{{ page.physical_activities2 }}</label>
+                    </div>
+                    <div class="custom-control custom-radio mb-3">
+                        <input type="radio" class="custom-control-input default" id="radio-physical-activities-3" name="physical-activities" value="1.5" required>
+                        <label class="custom-control-label" for="radio-physical-activities-3">{{ page.physical_activities3 }}</label>
+                    </div>
+                    <h5>{{ page.purpose }}</h5>
+                    <div class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input default" id="radio-purpose-1" name="purpose" value="1" required>
+                        <label class="custom-control-label" for="radio-purpose-1">{{ page.purpose1 }}</label>
+                    </div>
+                    <div class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input default" id="radio-purpose-2" name="purpose" value="0.8" required checked>
+                        <label class="custom-control-label" for="radio-purpose-2">{{ page.purpose2 }}</label>
+                    </div>
+                    <div class="custom-control custom-radio mb-3">
+                        <input type="radio" class="custom-control-input default" id="radio-purpose-3" name="purpose" value="1.2" required checked>
+                        <label class="custom-control-label" for="radio-purpose-3">{{ page.purpose3 }}</label>
+                    </div>
+                    <div class="result mt-5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+
+
+{% block scripts %}
+
+    <script src="{% static 'js/effects.jquery.min.js' %}"></script>
+    <script type="text/javascript">
+        'use strict';
+        {% if user.is_authenticated %}
+            var personal_url = window.location.pathname + 'user-{{ user.id }}/';
+            $(function () {
+                $('.personal-url').attr('href', personal_url);
+            });
+        {% endif %}
+
+        $(function() {
+            if (window.location.hash == '#freeze-info') {
+                var dest = $('.freeze');
+                $('#faq a[href="#' + dest.closest('.tab-pane').attr('id') + '"]').click();
+                dest.click();
+            }
+            if (window.location.hash.indexOf('#pid') != -1) {
+                var pid = parseInt(window.location.hash.split('-')[1]);
+                $('.referral_id').val(pid);
+            }
+        });
+
+        function animateCounter(el, fromNumber, toNumber) {
+            var animation = arguments.length <= 3 || arguments[3] === undefined ? true : arguments[3];
+            var decimals = arguments.length <= 4 || arguments[4] === undefined ? 0 : arguments[4];
+            var duration = arguments.length <= 5 || arguments[5] === undefined ? 4000 : arguments[5];
+
+            function decimalsAnimation(number, decimals) {
+                var new_num = number.toLocaleString(['cs-CZ', 'de-AT', 'en-ZA', 'fi-FI', 'fr-BE', 'fr-CA', 'fr-CH', 'fr-FR', 'ru-RU']);
+                if (decimals !== 0) {
+                    if (new_num.indexOf(',') !== -1) {
+                        var new_num_end = String(parseFloat('0.' + new_num.split(',')[1]).toFixed(decimals)).split('.')[1];
+                        var new_num_start = new_num.split(',')[0];
+                        new_num = new_num_start + '.' + new_num_end;
+                    } else {
+                        var new_num_end = '.';
+                        for (var i = 0; i < decimals; i++) {
+                            new_num_end += '0';
+                        }
+                        new_num += new_num_end;
+                    }
+                } else {
+                    new_num = Math.ceil(number).toLocaleString(['cs-CZ', 'de-AT', 'en-ZA', 'fi-FI', 'fr-BE', 'fr-CA', 'fr-CH', 'fr-FR', 'ru-RU']);
+                }
+                return new_num;
+            }
+
+            if (animation) {
+                el.prop('Counter', fromNumber).animate({
+                    Counter: toNumber
+                }, {
+                    duration: duration,
+                    easing: 'swing',
+                    step: function step(now) {
+                        $(this).text(decimalsAnimation(now, decimals));
+                    },
+                    queue: false
+                });
+                el.animate({
+                    opacity: 1
+                }, {
+                    duration: Math.ceil(duration / 4),
+                    easing: 'swing',
+                    queue: false
+                });
+            } else {
+                el.css({'opacity': 1}).text(decimalsAnimation(toNumber, decimals));
+            }
+        }
+
+        $('html, body').on('click', '.flowing-scroll', function (e) {
+            e.preventDefault();
+            if ($('.pure-toggle').prop('checked')) {
+                $('.pure-toggle').prop('checked', false);
+            }
+            var el = $(this);
+            var dest = el.attr('href');
+            if (dest !== undefined && dest !== '') {
+                $('.scrollable').animate({
+                    scrollTop: $(dest).offset().top - $('.navbar').outerHeight(true) + 1 + $('.scrollable').scrollTop()
+                }, 500, 'swing');
+            }
+            return false;
+        });
+
+        $('.calculate-calories span').addClass('d-inline-block');
+
+        $('.scrollable').on('load scroll resize', function(e) {
+            if ($('.scrollable').scrollTop() > $('.scroll-down').closest('.minh-100').height()) {
+                $('.calculate-calories span').removeClass('d-inline-block');
+            } else {
+                $('.calculate-calories span').addClass('d-inline-block');
+            }
+        });
+
+        $('.pure-toggle-label').on('click', function (e) {
+            e.preventDefault();
+            if ($('.pure-toggle').prop('checked')) {
+                $('.pure-toggle').prop('checked', false);
+            } else {
+                $('.pure-toggle').prop('checked', true);
+            }
+        });
+
+        $('.reviews-show-all').on('click', function () {
+            var btn = $(this);
+            if (!btn.hasClass('disabled')) {
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: '/{{ LANGUAGE_CODE }}/reviews-show-all/',
+                    type: 'get',
+                    data: {last_id: $('#reviews .card').last().data('id')}
+                }).done(function (data) {
+                    if (data['success']) {
+                        var container = $('#reviews .card').last().closest('.row');
+                        $.each(data['reviews'], function (i, review) {
+                            var new_review = '<div class="col-md-4 d-inline-flex new"><div class="card"><div class="card-body"><div class="row"><div class="col-lg-4"><div class="im"><a href="' + review.url + '"><img src="' + review.photo_webp_url + '" onerror="this.onerror=null; this.src=\'' + data.photo_url + '\'"></a></div></div><div class="col-lg-8"><div class="im"><a href="' + review.url + '"><h4>' + review.name + '</h4><div class="h5">' + review.url + '</div></a></div></div></div><div class="row"><p class="h5 text-muted card-text">' + review.content + '</p></div></div></div></div>';
+                            container.append(new_review);
+                        });
+                        $('.new').fadeIn(function () {
+                            $(this).removeClass('new');
+                        });
+                        btn.fadeOut();
+                    } else {
+                        btn.removeClass('disabled').attr('disabled', false);
+                    }
+                });
+            }
+        });
+
+        $('#write-review-form').on('submit', function (event) {
+            event.preventDefault();
+            $('#write-review-form .alert-success').remove();
+            var btn = $('#write-review-form #write-review_btn');
+            if (!btn.hasClass('disabled')) {
+                btn.addClass('disabled').attr('disabled', true);
+                $.ajax({
+                    url: '/{{ LANGUAGE_CODE }}/write-review/',
+                    type: 'post',
+                    data: $('#write-review-form').serialize()
+                }).done(function (data) {
+                    if (data['success']) {
+                        $('#write-review-form *').remove();
+                        $('#write-review-form').prepend('<div class="alert alert-success" style="margin-bottom: 1.8vmax" role="alert"><strong>{{ wt.success }}</strong><br>{{ page.write_review_success_info }}</div>');
+                    } else {
+                        $('#WriteReviewModal').effect('shake');
+                        if (!$('#write-review-form .alert-danger').length) {
+                            $('#write-review-form').prepend('<div class="alert alert-danger" role="alert"><strong>{{ wt.error }}</strong><br>{{ page.form_fail_info }}</div>');
+                        }
+                        btn.removeClass('disabled').attr('disabled', false);
+                    }
+                });
+            }
+        });
+
+        $('#write-review-form #write-review_btn').on('click', function () {
+            var form = $('#write-review-form');
+            if (form[0].checkValidity()) {
+                form.submit();
+            }
+        });
+
+        var dishes = {
+            {% for menu_id, menu_data in menus_other_data.items %}
+                '{{ menu_id }}': {
+                    {% for circleday_k, circleday_data in menu_data.items %}
+                        '{{ circleday_k }}': {
+                            {% for daytime_k, daytime_data in circleday_data.items %}
+                                '{{ daytime_k }}': {
+                                    {% for dish_k, dish_data in daytime_data.items %}
+                                        '{{ dish_k }}': {
+                                            {% for dish_data_k, dish_data_v in dish_data.items %}
+                                                {% autoescape off %}
+                                                    '{{ dish_data_k }}': `{{ dish_data_v }}`,
+                                                {% endautoescape %}
+                                            {% endfor %}
+                                        },
+                                    {% endfor %}
+                                },
+                            {% endfor %}
+                        },
+                    {% endfor %}
+                },
+            {% endfor %}
+        };
+
+        var dishes_default = {
+            {% for menu_id, menu_data in menus_data.items %}
+                '{{ menu_id }}': {
+                    {% for circleday_k, circleday_data in menu_data.items %}
+                        '{{ circleday_k }}': {
+                            {% for daytime_k, daytime_data in circleday_data.items %}
+                                '{{ daytime_k }}': {
+                                    {% for dish_k, dish_data in daytime_data.items %}
+                                        '{{ dish_k }}': {
+                                            {% for dish_data_k, dish_data_v in dish_data.items %}
+                                                {% autoescape off %}
+                                                    '{{ dish_data_k }}': `{{ dish_data_v }}`,
+                                                {% endautoescape %}
+                                            {% endfor %}
+                                        },
+                                    {% endfor %}
+                                },
+                            {% endfor %}
+                        },
+                    {% endfor %}
+                },
+            {% endfor %}
+        };
+
+        var daytime_translate = {
+            'drink': '{{ page.drink }}',
+            'breakfast': '{{ page.breakfast }}',
+            'second-breakfast': '{{ page.second_breakfast }}',
+            'lunch': '{{ page.lunch }}',
+            'high-tea': '{{ page.high_tea }}',
+            'dinner': '{{ page.dinner }}'
+        };
+
+        function generateDishBlock(dish, data, menu, circleday, daytime, original) {
+            var dish_block = '';
+            if (original) {
+                dish_block += '<div class="dish text-left new col-6 col-md-4 mb-2" ';
+            } else {
+                dish_block += '<div class="dish col-12 col-md-6 col-lg-4 mb-5" ';
+            }
+            dish_block += 'data-id="' + dish + '" ';
+            dish_block += 'data-menu="' + menu + '" ';
+            dish_block += 'data-circleday="' + circleday + '" ';
+            dish_block += 'data-daytime="' + daytime + '" ';
+            dish_block += 'data-calories="' + parseInt(data.calories) + '" ';
+            dish_block += 'data-weight="' + parseInt(data.weight) + '" ';
+            dish_block += 'data-proteins="' + parseInt(data.proteins) + '" ';
+            dish_block += 'data-fats="' + parseInt(data.fats) + '" ';
+            dish_block += 'data-carbohydrates="' + parseInt(data.carbohydrates) + '">';
+            if (original) {
+                dish_block += '<img src="' + data.image_webp_url + `" onerror="this.onerror=null; this.src='` + data.image_url + `'" alt="` + data.name + ' photo">';
+            } else {
+                dish_block += '<img class="mb-4" src="' + data.image_webp_url + `" onerror="this.onerror=null; this.src='` + data.image_url + `'" alt="` + data.name + ' photo">';
+            }
+            if (original) {
+                var change_allowed = false;
+                {% for menu_id, menu_data in menus_other_data.items %}
+                    {% for circleday_k, circleday_data in menu_data.items %}
+                        {% for daytime_k, daytime_data in circleday_data.items %}
+                            {% for dish_k, dish_data in daytime_data.items %}
+                                if (menu == '{{ menu_id }}'.replace('menu-', '') && daytime == '{{ daytime_k }}'.replace('daytime-', '') && circleday == '{{ circleday_k }}'.replace('circleday-', '') && dish !== '{{ dish_k }}') {
+                                    change_allowed = true;
+                                }
+                            {% endfor %}
+                        {% endfor %}
+                    {% endfor %}
+                {% endfor %}
+                if (change_allowed) {
+                    dish_block += '<div class="d-flex align-items-center justify-content-between mt-4 mb-2">';
+                    dish_block += '<div class="dish-daytime">';
+                    dish_block += daytime_translate[daytime];
+                    dish_block += '</div>';
+                    dish_block += '<a href="#SelectDishModal" data-toggle="modal" data-target="#SelectDishModal" class="btn btn-sm default">{{ page.replace }}</a>';
+                    dish_block += '</div>';
+                } else {
+                    dish_block += '<div class="dish-daytime mt-4 mb-2 mx-auto">';
+                    dish_block += daytime_translate[daytime];
+                    dish_block += '</div>';
+                }
+            }
+            dish_block += '<div class="dish-name mb-2">' + data.name + '</div>';
+            dish_block += '<div class="dish-description mb-2">' + data.description + '</div>';
+            {% if LANGUAGE_CODE == 'he' %}
+                dish_block += '<div class="dish-info mb-1"><span dir="ltl"> {{ wt.calories_short }} </span>' + parseInt(data.calories)+ '</div>';
+		dish_block += '<div style="color: #777; font-size: 1vmax;" class="dish-proteins mb-1">חלבונים: ' + parseInt(data.proteins) + '</div>';
+                dish_block += '<div style="color: #777; font-size: 1vmax;" class="dish-fats mb-1">שומנים: ' + parseInt(data.fats) + '</div>';
+                dish_block += '<div style="color: #777; font-size: 1vmax;" class="dish-carb mb-1">פחמימות: ' + parseInt(data.carbohydrates) + '</div>';
+            {% else %}
+                dish_block += '<div class="dish-info mb-1">' + parseInt(data.calories)+ ' {{ wt.calories_short }} </div>';
+		dish_block += '<div style="color: #777; font-size: 1vmax;" class="dish-proteins mb-1">Белки: ' + parseInt(data.proteins) + '</div>';
+		dish_block += '<div style="color: #777; font-size: 1vmax;" class="dish-fats mb-1">Жиры: ' + parseInt(data.fats) + '</div>';
+		dish_block += '<div style="color: #777; font-size: 1vmax;" class="dish-carb mb-1">Углеводы: ' + parseInt(data.carbohydrates) + '</div>';
+            {% endif %}
+            if (!original) {
+                dish_block += '<a href="#SelectDishSubmit" class="btn mt-1 btn-sm default select_dish_submit">{{ page.select }}</a>';
+            }
+            dish_block += '</div>';
+            return dish_block;
+        }
+
+        function calculateOrderPrice() {
+            var days_selection_active = $('.days-selection.active');
+            if (days_selection_active.length) {
+                var menu_id = $('.menu').first().prop('id').split('-')[1];
+                if ($('.menu.active').length) {
+                    menu_id = $('.menu.active').prop('id').split('-')[1];
+                }
+                var days = parseInt(days_selection_active.data('days'));
+                var old_price = menu_circleday_price['menu-' + menu_id]['days-' + days];
+                var sale_price = old_price;
+                var sale = 0.00;
+                var old_price_per_day = (old_price / days);
+                var sale_price_per_day = (sale_price / days);
+                $('#order').data('price', sale_price);
+                var fromCounterSalePricePerDay = parseFloat($('#order .right-part .sale-price-per-day').text().replace(/\xA0/g, ''));
+                animateCounter($('#order .right-part .sale-price-per-day'), fromCounterSalePricePerDay, sale_price_per_day, false, 0);
+                var fromCounterSalePrice = parseFloat($('#order .right-part .sale-price').text().replace(/\xA0/g, ''));
+                animateCounter($('#order .right-part .sale-price'), fromCounterSalePrice, old_price, false, 0);
+            }
+        }
+
+        function calculateSummary() {
+            var menu = $('.menu.active .tab-pane.active');
+            var summary = {
+                calories: 0,
+                proteins: 0,
+                fats: 0,
+                carbohydrates: 0
+            };
+            var summary_types = ['calories', 'proteins', 'fats', 'carbohydrates'];
+            menu.find('.dish').each(function (i, dish) {
+                $.each(summary_types, function (i, name) {
+                    summary[name] += parseInt($(dish).data(name));
+                });
+            });
+            $.each(summary_types, function (i, name) {
+                var block = menu.find('.summary-block .summary-' + name);
+                var fromNumber = parseInt(block.text() ? parseInt(block.text().replace(/\xA0/g, '')) : 0);
+                animateCounter(block, fromNumber, summary[name], false, 0);
+            });
+            var all_calories = 0;
+            $.each($('.menu.active .dish'), function (i, dish) {
+                all_calories += parseInt($(dish).data('calories'));
+            });
+        }
+
+        var menu_circleday_price = {
+            {% for menu_k, menu_data in menu_prices.items %}
+                '{{ menu_k }}': {
+                    {% for days, price in menu_data.items %}
+                        '{{ days }}': parseFloat('{{ price }}'),
+                    {% endfor %}
+                },
+            {% endfor %}
+        }
+
+        function calculateDishesData() {
+            $('.dish').each(function (i, dish) {
+                dish = $(dish);
+                var original_dish = dishes['menu-' + dish.data('menu')]['circleday-' + dish.data('circleday')]['daytime-' + dish.data('daytime')][dish.data('id')];
+                dish.data('calories', parseFloat(original_dish.calories));
+                dish.data('weight', parseFloat(original_dish.weight));
+                dish.data('proteins', parseFloat(original_dish.proteins));
+                dish.data('fats', parseFloat(original_dish.fats));
+                dish.data('carbohydrates', parseFloat(original_dish.carbohydrates));
+                dish.find('.dish-info').text(parseInt(original_dish.calories) + ' {{ wt.calories_short }} ');
+            });
+            calculateSummary();
+        }
+
+        function resetMenu(menu) {
+            $('#menu-' + menu + ' .custom-menu').remove();
+            var circledays = [
+                {% for date_data in dates %}
+                    {{ date_data.circleday }},
+                {% endfor %}
+            ];
+            $.each(circledays, function (i, circleday) {
+                var row = $('#menu-' + menu + '-circleday-' + circleday + ' .row');
+                row.find('*').remove();
+                $.each(daytime_translate, function (daytime, daytime_translated) {
+                    var dish_now = dishes_default['menu-' + menu]['circleday-' + circleday]['daytime-' + daytime];
+                    if (Object.keys(dish_now).length) {
+                        $.each(dish_now, function (dish, data) {
+                            row.append(generateDishBlock(dish, data, menu, circleday, daytime, true));
+                        });
+                    }
+                });
+                var summary_block = '';
+                summary_block += '<div class="col-6 col-md-4 mb-5">';
+                summary_block += '<div class="summary-block text-left d-flex align-items-center">';
+                summary_block += '<div class="w-100">';
+                summary_block += '<h4 class="font-weight-bold d-block">{{ page.summary }}</h4>';
+                summary_block += '<h3 class="font-weight-bold summary-calories d-inline"></h3>';
+                summary_block += '<h4 class="font-weight-bold text-muted d-inline {% if LANGUAGE_CODE == 'he' %} mt-1 float-left{% endif %}"> {{ wt.calories_short }}</h4>';
+                summary_block += '<div class="d-flex align-items-center justify-content-between w-100 mt-3">';
+                summary_block += '<div>';
+                summary_block += '<h3 class="font-weight-bold summary-proteins"></h3>';
+                summary_block += '<h4 class="text-muted">{{ page.proteins }}</h4>';
+                summary_block += '</div>';
+                summary_block += '<div class="mx-2">';
+                summary_block += '<h3 class="font-weight-bold summary-fats"></h3>';
+                summary_block += '<h4 class="text-muted">{{ page.fats }}</h4>';
+                summary_block += '</div>';
+                summary_block += '<div>';
+                summary_block += '<h3 class="font-weight-bold summary-carbohydrates"></h3>';
+                summary_block += '<h4 class="text-muted">{{ page.carbohydrates }}</h4>';
+                summary_block += '</div>';
+                summary_block += '</div>';
+                summary_block += '</div>';
+                summary_block += ' </div>';
+                summary_block += '</div>';
+                row.append(summary_block);
+            });
+            calculateSummary();
+        }
+
+        $('.plan1').on('click', function (e) {
+            $(this).find('.plan1_select').click();
+        });
+
+        $('.plan1_select').on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var plan = $(this).closest('.plan1');
+            calculateDishesData();
+            $('#order .name').text($('.menu.active .menu-full-name').text());
+            $('.plan1_select').text('{{ page.select }}');
+            $('.plan1_select').removeClass('active');
+            $(this).text('{{ page.selected }}');
+            $(this).addClass('active');
+            if (!plan.hasClass('selected')) {
+                $('.plan1.selected').removeClass('selected');
+                plan.addClass('selected');
+            }
+            calculateOrderPrice();
+            var val = $(this).closest('.plan1').data('id');
+            $('.plan2-wrap:not(.plan2-related-to-' + val + ')').addClass('d-none');
+             $('.plan2-wrap').removeClass('active');
+            $('.plan2-related-to-' + val).removeClass('d-none');
+            if (!$('.plan2-related-to-' + val).find('.active').length) {
+                if ($('.plan2-related-to-' + val).length == 1) {
+                    $('.plan2-related-to-' + val).click();
+                } else {
+                    $('.plan2-related-to-' + val).removeClass('active');
+                    $('.no-plan1').addClass('d-none');
+                    $('.menu .menu-full-name').addClass('d-none');
+                    $('.menu .menu-description').addClass('d-none');
+                    $('.no-plan2').removeClass('d-none');
+                    $('.menu-backdrop').removeClass('d-none');
+                    $('.order-backdrop').removeClass('d-none');
+                    $('.days-selection').removeClass('active');
+                    $('.right-part-no-selected').removeClass('d-none');
+                    $('.right-part-selected').addClass('d-none');
+                    $('.page-order').addClass('d-none');
+                    $('.scrollable').animate({
+                        scrollTop: $('#select-plan2').offset().top - $('.navbar').outerHeight(true) + 1 - 20 + $('.scrollable').scrollTop()
+                    }, 500, 'swing', function () {
+                        calculateSummary();
+                    });
+                }
+            }
+        });
+
+        $('html, body').on('click', '.plan2-wrap:not(.active)', function() {
+            $('.plan2-wrap').removeClass('active');
+            $('.plan2-wrap[data-menu="' + $(this).data('menu') + '"]').addClass('active');
+            if (!$('.plan1[data-id="' + $(this).data('related') + '"]').hasClass('selected')) {
+                var plan = $('.plan1[data-id="' + $(this).data('related') + '"]');
+                calculateDishesData();
+                $('#order .name').text($('.menu.active .menu-full-name').text());
+                $('.plan1_select').text('{{ page.select }}');
+                $('.plan1_select').removeClass('active');
+                plan.find('.plan1_select').text('{{ page.selected }}');
+                plan.find('.plan1_select').addClass('active');
+                if (!plan.hasClass('selected')) {
+                    $('.plan1.selected').removeClass('selected');
+                    plan.addClass('selected');
+                }
+                calculateOrderPrice();
+                var val = plan.data('id');
+                $('.plan2-wrap:not(.plan2-related-to-' + val + ')').addClass('d-none');
+                $('.plan2-related-to-' + val).removeClass('d-none');
+            }
+            $('.menu-backdrop').addClass('d-none');
+            $('.no-plan1').addClass('d-none');
+            $('.no-plan2').addClass('d-none');
+            $('.menu .menu-full-name').removeClass('d-none');
+            $('.menu .menu-description').removeClass('d-none');
+            $('.order-backdrop').addClass('d-none');
+            $('.days-selection').removeClass('active');
+            $('.right-part-no-selected').removeClass('d-none');
+            $('.right-part-selected').addClass('d-none');
+            $('.page-order').removeClass('d-none');
+            $('#order .description').text($('.plan2-wrap.active .plan2-name').text());
+            $('.scrollable').animate({
+                scrollTop: $('#menu').offset().top - $('.navbar').outerHeight(true) + 1 - 20 + $('.scrollable').scrollTop()
+            }, 500, 'swing', function () {
+                calculateSummary();
+            });
+        });
+
+        $('#SelectDishModal').on('show.bs.modal', function (e) {
+            var modal = $(this);
+            var dish_now = $(e.relatedTarget).closest('.dish');
+            var menu_now = dish_now.data('menu');
+            var circleday_now = dish_now.data('circleday');
+            var daytime_now = dish_now.data('daytime');
+            var dish_uid_number = $('.menu.active .tab-pane.active .dish[data-daytime="' + dish_now.data('daytime') + '"]').index(dish_now);
+            var dish_uid = dish_now.data('daytime') + '.' + dish_uid_number;
+            modal.data('uid', dish_uid);
+            var dishes_to_select = {};
+            Object.assign(dishes_to_select, dishes['menu-' + menu_now]['circleday-' + circleday_now]['daytime-' + daytime_now]);
+            var id_now = dish_now.data('id');
+            delete dishes_to_select[id_now];
+            modal.find('.daytime').text(daytime_translate[daytime_now].toLowerCase());
+            modal.find('.day').text($('.menu.active .nav-weekdays .nav-link.active').text());
+            modal.find('.modal-body .dish').remove();
+            $.each(dishes_to_select, function (dish, data) {
+                modal.find('.modal-body .row').append(generateDishBlock(dish, data, menu_now, circleday_now, daytime_now, false));
+            });
+        });
+
+        $('html, body').on('click', '.select_dish_submit', function () {
+            var dish_block_selected = $(this).closest('.dish');
+            var menu_selected = dish_block_selected.data('menu');
+            var circleday_selected = dish_block_selected.data('circleday');
+            var daytime_selected = dish_block_selected.data('daytime');
+            var dish_selected = dish_block_selected.data('id');
+            var dish_selected_data = dishes['menu-' + menu_selected]['circleday-' + circleday_selected]['daytime-' + daytime_selected];
+            var dish_block_new = generateDishBlock(dish_selected, dish_selected_data[dish_selected], menu_selected, circleday_selected, daytime_selected, true);
+            var dish_last_uid = $(this).closest('#SelectDishModal').data('uid').split('.');
+            var dish_last_daytime = dish_last_uid[0];
+            var dish_last_daytime_i = parseInt(dish_last_uid[1]);
+            var dish_last = $($('.menu.active .tab-pane.active .dish[data-daytime="' + dish_last_daytime + '"]')[dish_last_daytime_i]);
+            var next_dish = dish_last.next();
+            next_dish.prev().fadeOut(200, function () {
+                $(this).remove();
+                next_dish.before(dish_block_new);
+                $('.menu.active .tab-pane.active .dish.new').fadeIn(200, function () {
+                    $(this).removeClass('new');
+                    calculateSummary();
+                    $('#SelectDishModal').modal('hide');
+                });
+            });
+        });
+
+        $('.menu a[data-toggle="pill"]').on('shown.bs.tab', function (e) {
+            setTimeout(function () {
+                calculateSummary();
+            }, 20);
+        });
+
+        $(document).ready(function () {
+            var menus = [
+                {% for menu in menus %}
+                    '{{ menu.id }}',
+                {% endfor %}
+            ];
+            $.each(menus, function (i, menu) {
+                resetMenu(menu);
+            });
+        });
+
+        $('html, body').on('click', '.days-selection:not(.active)', function () {
+            $('#order .name').text($('.menu.active .menu-full-name').text());
+            $('#order .description').text($('.plan2-wrap.active .plan2-name').text());
+            $('.days-selection.active').removeClass('active');
+            $('.right-part-no-selected').addClass('d-none');
+            $('.right-part-selected').removeClass('d-none');
+            $(this).addClass('active');
+            calculateOrderPrice();
+        });
+
+        var making_order = false;
+
+        function requiredOrderFields(fields) {
+            $.each(fields, function (i, field) {
+                field.on('keyup keydown change', function () {
+                    var ok = true;
+                    $.each(fields, function (j, field2) {
+                        $(field2).removeClass('is-invalid');
+                        if (field2.val().length == 0) {
+                            ok = false;
+                        }
+                        if (field2.prop('name') == 'phone' && field2.val().length < 10) {
+                            ok = false;
+                            $(field2).addClass('is-invalid');
+                        }
+                    });
+                    if (ok) {
+                        $('#order .make-order').removeClass('disabled').attr('disabled', false);
+                    } else {
+                        $('#order .make-order').addClass('disabled').attr('disabled', true);
+                    }
+            });
+            })
+        }
+
+        {% if user.is_authenticated %}
+            requiredOrderFields([$('#order input[name="address"]')]);
+        {% else %}
+            requiredOrderFields([$('#order input[name="phone"]'), $('#order input[name="address"]'), $('#order input[name="name"]')]);
+        {% endif %}
+
+        $('#order .make-order').on('click', function (e) {
+            e.preventDefault();
+            var btn = $(this);
+		$('#SpinnerModal').modal('show');
+            if (!btn.hasClass('disabled')) {
+                making_order = true;
+                btn.addClass('disabled').attr('disabled', true);
+                var dishes = {};
+                $('.menu.active .dish').each(function (i, dish) {
+                    var circleday = String($(dish).data('circleday'));
+                    var dish_id = $(dish).data('id').split('-')[1];
+                    if (Object.keys(dishes).indexOf(circleday) != -1) {
+                        dishes[circleday].push(dish_id);
+                    } else {
+                        dishes[circleday] = [dish_id];
+                    }
+                });
+                var phone = '';
+                if ($('#order input[name="phone"]').length) {
+                    phone = $('#order input[name="phone"]').val();
+                }
+                var name = '';
+                if ($('#order input[name="name"]').length) {
+                    name = $('#order input[name="name"]').val();
+                }
+                var order = {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    menu_id: $('.menu.active').data('id'),
+                    phone: phone,
+                    name: name,
+                    address: $('#order input[name="address"]').val(),
+                    comment: $('#order input[name="comment"]').val(),
+                    dishes: JSON.stringify(dishes),
+                    days: $('.days-selection.active').data('days'),
+                    payment_type: $('#order select[name="payment_type"]').val(),
+                    promocode: $('#order input[name="promocode"]').val(),
+                    referral_id: $('#order input[name="referral_id"]').val(),
+                }
+                $.ajax({
+                    url: '/{{ LANGUAGE_CODE }}/make-order/',
+                    type: 'post',
+                    data: $.param(order)
+                }).done(function (data) {
+			$('#SpinnerModal').modal('hide');
+                    if (data['success']) {
+                        if (data['dishes_ok']) {
+                            var success = '<div class="alert alert-success"><strong>{{ wt.order_success }}</strong><hr>{{ wt.unique_order_number }}: <strong>' + parseInt(data['new_order_id']).toLocaleString(['cs-CZ', 'de-AT', 'en-ZA', 'fi-FI', 'fr-BE', 'fr-CA', 'fr-CH', 'fr-FR', 'ru-RU']) + '</strong><br><br>{{ wt.to_pay }}: <strong>' + parseFloat(data['new_order_price']).toLocaleString(['cs-CZ', 'de-AT', 'en-ZA', 'fi-FI', 'fr-BE', 'fr-CA', 'fr-CH', 'fr-FR', 'ru-RU']) + ' ₪</strong><hr><strong><i>{{ wt.order_success_info }}</i></strong></div>';
+                            var success_footer = '';
+                            {% if user.is_authenticated %}
+                                success_footer = '<a href="' + personal_url + '" class="btn btn-sm default">{{ wt.personal_account }}</a>';
+                            {% else %}
+                                success_footer = '<a href="#SignUpModal" class="btn btn-sm default" data-toggle="modal" data-target="#SignUpModal">{{ wt.registration }}</a>';
+                            {% endif %}
+                            $('#SuccessOrderModal .modal-body *').remove();
+                            $('#SuccessOrderModal .modal-body').append(success);
+                            $('#SuccessOrderModal .modal-footer *').remove();
+                            $('#SuccessOrderModal .modal-footer').append(success_footer);
+                            $('#SuccessOrderModal').modal('show');
+                        } else {
+                            $('#FailureOrderModal .modal-body').append('<div class="alert alert-info"><strong>{{ page.order_failure }}</strong><br>{{ page.order_failure_info_1 }}<br>{{ page.order_failure_info_2 }}</div>');
+                            $('#FailureOrderModal .modal-footer').append('<a href="" class="btn btn-sm default">{{ page.reload_page }}</a>')
+                            $('#FailureOrderModal').modal('show');
+                        }
+                    }
+                    btn.removeClass('disabled').attr('disabled', false);
+                    making_order = false;
+                });
+            }
+
+        });
+
+        $('#faq .nav-item').on('click', function(e) {
+            $('.scrollable').animate({
+                scrollTop: $('#faq .tab-pane.active .accordion').offset().top - $('.navbar').outerHeight(true) + 1 - 20 + $('.scrollable').scrollTop()
+            }, 500, 'swing');
+        });
+
+        $('#order input').on('click', function(e) {
+            setTimeout(function(){
+                $('.scrollable').scrollTop($('#order').offset().top - $('.navbar').outerHeight(true) + 50 + $('.scrollable').scrollTop());
+            }, 50);
+        });
+
+        function calculateCalories(is_male, age, height, weight, physical_activities_k, purpose_k) {
+            return parseInt(purpose_k*physical_activities_k*(is_male?(88.364+(13.397*weight)+(4.799*height)-(5.677*age)):(447.593+(9.247*weight)+(3.098*height)-(4.33*age))))
+        }
+
+        var menu_types_ids = [
+            {% for menu_type in menu_types %}
+                {{ menu_type.id }},
+            {% endfor %}
+        ];
+
+        var all_menus = [
+            {% for menu in menus %}
+                {
+                    id: {{ menu.id }},
+                    parent_id: {{ menu.type.id }},
+                    name: '{{ menu.name }}',
+                    description: '{{ menu.description }}',
+                    calories: {{ menu.calories }}
+                },
+            {% endfor %}
+        ];
+
+        function generateMenuBlock(menu) {
+            var menu_block = ' <a class="nav-link plan2-wrap" data-toggle="pill" data-menu="' + menu.id + '" data-menuparent="' + menu.parent_id + '">';
+            menu_block += '<div class="plan2">';
+            menu_block += '<div class="plan2-name">' + menu.name + '</div>';
+            menu_block += '<div class="plan2-description">' + menu.description + '</div>';
+            menu_block += '<div class="plan2-calories">{{ wt.calories_short_start }} ' + menu.calories + ' {{ wt.calories_short }}</div>';
+            menu_block += '</div>';
+            menu_block += '</a>';
+            return menu_block;
+        }
+
+        function makeCaloriesCalculation() {
+            var is_male = $('#CalculateCaloriesModal input[name="sex"][value="male"]').is(':checked')
+            var age = $('#CalculateCaloriesModal input[name="age"]').val();
+            var height = $('#CalculateCaloriesModal input[name="height"]').val();
+            var weight = $('#CalculateCaloriesModal input[name="weight"]').val();
+            var physical_activities_k = $('#CalculateCaloriesModal input[name="physical-activities"]:checked').val();
+            var purpose_k = $('#CalculateCaloriesModal input[name="purpose"]:checked').val();
+            var result = $('#CalculateCaloriesModal .result');
+            result.find('*').remove();
+            if (age && height && weight) {
+              var calories = calculateCalories(is_male, age, height, weight, physical_activities_k, purpose_k);
+              var result_block = '';
+              result_block += '<h5>{{ page.result }}</h5>';
+              result_block += '<h6 class="mb-4">{{ page.you_need_calories }} <strong>' + calories + ' {{ wt.calories_short }}</strong></h6>';
+              result_block += '<h5>{{ page.recommended_menus }}</h>';
+              var recommended_menus = {};
+              $.each(menu_types_ids, function (i, menu_parent_id) {
+                $.each(all_menus, function (j, menu_data) {
+                  if (calories - menu_data.calories > 0) {
+                    if (recommended_menus[menu_data.parent_id]) {
+                      if (calories - menu_data.calories < recommended_menus[menu_data.parent_id].calories_change) {
+                        recommended_menus[menu_data.parent_id].menu = menu_data;
+                        recommended_menus[menu_data.parent_id].calories_change = calories - menu_data.calories;
+                      }
+                    } else {
+                      recommended_menus[menu_data.parent_id] = {
+                        menu: menu_data,
+                        calories_change: 10000
+                      };
+                    }
+                  }
+                });
+              });
+              result_block += '<div class="plan2-container d-block nav nav-pills mb-4" role="tablist">';
+              $.each(Object.keys(recommended_menus), function (i, parent_id) {
+                result_block += generateMenuBlock(recommended_menus[parent_id].menu);
+              });
+              result_block += '</div>';
+              result.append(result_block);
+              $('#CalculateCaloriesModal .plan2-wrap').off();
+              $('#CalculateCaloriesModal .plan2-wrap').on('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $('#CalculateCaloriesModal').modal('hide');
+                console.log($('#select-plan2 .plan2-wrap[data-id="' + $(this).data('menu') + '"]'));
+                $('#select-plan2 .plan2-wrap[data-id="' + $(this).data('menu') + '"]').click();
+              });
+            }
+        }
+
+        $('#CalculateCaloriesModal').on('show.bs.modal', function(e) {
+            makeCaloriesCalculation();
+            $('.calculate-calories').addClass('d-none');
+        });
+
+        $('#CalculateCaloriesModal').on('hide.bs.modal', function(e) {
+            $('.calculate-calories').removeClass('d-none');
+        });
+
+        $('#CalculateCaloriesModal input').on('keyup keydown change', function(e) {
+            makeCaloriesCalculation();
+        });
+
+        makeCaloriesCalculation();
+
+    </script>
+
+{% endblock %}

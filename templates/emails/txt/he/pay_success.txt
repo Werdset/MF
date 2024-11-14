@@ -1,0 +1,21 @@
+{% extends 'emails/txt/he/wrapper.txt' %}
+
+
+
+{% block content %}
+ההזמנה שלך באתר שלנו שולמה בהצלחה (https://{{ fixed.base }}/he/).
+
+מספר הזמנה: {{ order.id }}.
+
+תַפרִיט: {{ order.menu.type }}.
+
+{% if order.first_date == order.last_date %}
+תאריך משלוח: {{ order.first_date|date:"d.m.Y" }}.
+{% else %}
+תאריכי משלוח: {{ order.first_date|date:"d.m.Y" }} — {{ order.last_date|date:"d.m.Y" }}.
+{% endif %}
+
+תאריך הפעולה: {{ created|date:"d.m.Y" }}
+
+פרטים נוספים בחשבונך האישי (https://{{ fixed.base }}/he/user-{{ order.profile.user.id }}/).
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'emails/txt/he/wrapper.txt' %}
+
+
+
+{% block content %}
+החלטת להירשם לאתר שלנו (https://{{ fixed.base }}/he/).
+
+לאישור הפעולה, הזן את הקוד:
+
+{{ code }}
+
+תאריך הפעולה: {{ created|date:"d.m.Y" }}.
+
+אם לא עשית זאת, אל תשתף את הקוד הזה עם אף אחד.
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'emails/txt/ru/wrapper.txt' %}
+
+
+
+{% block content %}
+Ваш заказ на нашем сайте успешно оплачен (https://{{ fixed.base }}/ru/).
+
+Номер заказа: {{ order.id }}.
+
+Меню: {{ order.menu.type }}.
+
+{% if order.first_date == order.last_date %}
+Дата доставки: {{ order.first_date|date:"d.m.Y" }}.
+{% else %}
+Даты доставки: {{ order.first_date|date:"d.m.Y" }} — {{ order.last_date|date:"d.m.Y" }}.
+{% endif %}
+
+Дата операции: {{ created|date:"d.m.Y" }}
+
+Подробнее в личном кабинете (https://{{ fixed.base }}/ru/user-{{ order.profile.user.id }}/).
+{% endblock %}

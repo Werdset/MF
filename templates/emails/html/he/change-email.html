@@ -1,0 +1,14 @@
+{% extends 'emails/html/he/wrapper.html' %}
+
+
+
+{% block content %}
+
+    <p>בקשת לשנות את הדואר אלקטרוני <a href="https://{{ fixed.base }}/ru/" target="_blank">באתר שלנו</a>.</p>
+    <p>תיבת דואר זו תשמש ככתובת הדוא"ל החדשה.</p>
+    <p>לאישור הפעולה, הזן את הקוד:</p>
+    <p class="h1 code">{{ code }}</p>
+    <p>תאריך הפעולה: <b>{{ created|date:"d.m.Y" }}</b>.</p>
+    <p>אם לא עשית זאת, אל תעביר את הקוד הזה לאף אחד.</p>
+
+{% endblock %}

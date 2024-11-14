@@ -1,0 +1,16 @@
+{% extends 'emails/txt/ru/wrapper.txt' %}
+
+
+
+{% block content %}
+
+    Номер заказа: {{ order.id }}
+        {% if order.first_date == order.last_date %}
+            Даты заказа: {{ order.first_date|date:"d.m.Y" }}
+        {% else %}
+            Даты заказа: {{ order.first_date|date:"d.m.Y" }} — {{ order.last_date|date:"d.m.Y" }}
+        {% endif %}
+    Сумма заказа: {{ order.price }} ₪
+    Время заказа: {{ order.created|date:"d.m.Y H:i" }}
+
+{% endblock %}
